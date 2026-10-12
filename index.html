@@ -434,6 +434,7 @@ function listenCfg() {
     S.cfg = { floors: d.floors || {} };
     S.roomFloor = {};
     for (const [f, rooms] of Object.entries(S.cfg.floors)) rooms.forEach(r => { S.roomFloor[r] = f; });
+    if (!$("settingsView").classList.contains("hidden")) updateSetInfo();
     render();
   }, e => toast("設定の読み込みに失敗しました: " + e.code));
 }
@@ -967,12 +968,16 @@ function openSettings() {
   $("adminSec").classList.toggle("hidden", !S.me.admin);
   if (S.me.admin) {
     $("roomsTa").value = floorsSorted().map(f => `${f}: ${compress(S.cfg.floors[f])}`).join("\n");
-    const total = Object.values(S.cfg.floors).reduce((a, v) => a + v.length, 0);
-    $("setInfo").textContent = `登録済み：${Object.keys(S.cfg.floors).length}フロア・${total}室`;
+    updateSetInfo();
     renderUsers();
   }
   show("settingsView");
   window.scrollTo(0, 0);
+}
+// 登録済みの室数表示（保存後も最新に更新する）
+function updateSetInfo() {
+  const total = Object.values(S.cfg.floors).reduce((a, v) => a + v.length, 0);
+  $("setInfo").textContent = `登録済み：${Object.keys(S.cfg.floors).length}フロア・${total}室`;
 }
 $("setCancel").onclick = () => { show("appView"); render(); };
 $("logoutBtn").onclick = logout;
