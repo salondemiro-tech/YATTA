@@ -1,0 +1,1084 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>YATTA 清掃管理</title>
+<style>
+:root{--bg:#f4f5f7;--ink:#1f2328;--sub:#6b7280;--line:#d0d7de;--blue:#2563eb;--red:#dc2626;--green:#16a34a;--orange:#f97316;--grey:#e5e7eb}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;font-family:-apple-system,"Hiragino Sans","Noto Sans JP",sans-serif;background:var(--bg);color:var(--ink)}
+.hidden{display:none!important}
+button{font:inherit;border:1px solid var(--line);background:#fff;color:var(--ink);border-radius:10px;padding:8px 12px;cursor:pointer}
+button.primary{background:var(--blue);color:#fff;border-color:var(--blue)}
+input,select,textarea{font:inherit;padding:10px;border:1px solid var(--line);border-radius:10px;width:100%;background:#fff;color:var(--ink)}
+.screen{max-width:520px;margin:32px auto;padding:16px}
+.screen h1{font-size:20px}
+.field{margin:12px 0}
+.field label{display:block;font-size:13px;color:var(--sub);margin-bottom:4px}
+.btnrow{display:flex;gap:8px;flex-wrap:wrap}
+header{position:sticky;top:0;z-index:5;background:#fff;border-bottom:1px solid var(--line);padding:8px 12px;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.sync{font-size:12px;padding:4px 10px;border-radius:999px;white-space:nowrap;border:0}
+.sync.ok{background:#dcfce7;color:#166534}.sync.busy{background:#dbeafe;color:#1e40af}.sync.off{background:#fef3c7;color:#92400e}.sync.err{background:#fee2e2;color:#991b1b;font-weight:700}
+header .who{flex:1;min-width:0;font-size:12px;color:var(--sub);line-height:1.3}
+header .who b{font-size:16px;color:var(--ink)}
+.bar{display:flex;flex-wrap:wrap;gap:6px;padding:8px 12px;align-items:center}
+.bar input{flex:1;min-width:180px;width:auto}
+.lbl{font-size:13px;color:var(--sub)}
+.chip{padding:6px 10px;border-radius:999px;font-size:14px}
+.chip.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.summary{padding:8px 12px 0;font-size:14px;display:flex;gap:14px;flex-wrap:wrap;align-items:center}
+.summary b{font-size:18px}
+.dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:4px;vertical-align:middle;background:var(--grey)}
+.dot.red{background:var(--red)}.dot.green{background:var(--green)}.dot.orange{background:var(--orange)}
+.notice{margin:8px 12px;padding:8px 10px;background:#fff7e6;border:1px solid #f5d38a;border-radius:8px;font-size:13px}
+.legend{font-size:12px;color:var(--sub);padding:0 12px}
+.pad{padding:12px}
+.card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px;margin:12px}
+.floor{padding:4px 12px 12px}
+.floor h2{font-size:15px;margin:10px 0 8px;display:flex;align-items:center;gap:8px}
+.fl-actions{margin-left:auto;display:flex;gap:6px}
+.fl-actions button{font-size:12px;padding:4px 8px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(72px,1fr));gap:8px}
+.tile{position:relative;overflow:hidden;height:70px;border-radius:10px;border:3px solid var(--grey);background:var(--grey);color:#9ca3af;display:flex;flex-direction:column;align-items:center;justify-content:center;user-select:none;-webkit-user-select:none;cursor:pointer}
+.tile .no{font-size:18px;font-weight:700}
+.tile .by{font-size:10px;max-width:100%;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;padding:0 4px;min-height:12px}
+.tile.red{background:var(--red);border-color:var(--red);color:#fff}
+.tile.green{background:var(--green);border-color:var(--green);color:#fff}
+.tile.done{background:#fff;color:var(--ink)}
+.tile.done.b-red{border-color:var(--red)}
+.tile.done.b-green{border-color:var(--green)}
+.spband{position:absolute;top:0;left:0;right:0;height:18px;background:var(--orange);color:#fff;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center}
+.tile .no,.tile .by{margin-top:6px}
+.tile .co{position:absolute;bottom:2px;right:4px;font-size:10px;font-weight:700;opacity:.9}
+.tag.next{background:#dbeafe;color:var(--blue)}
+.seg button.on.pen-co{background:#7f1d1d}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.seg button{border:0;border-radius:0}
+.seg button.on{background:var(--blue);color:#fff}
+.seg button.on.pen-red{background:var(--red)}
+.seg button.on.pen-green{background:var(--green)}
+.seg button.on.pen-erase{background:#6b7280}
+.navgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;margin:12px 0}
+.navgrid button{text-align:left;padding:14px;border-radius:12px}
+.navgrid button b{display:block;font-size:17px;margin-bottom:4px}
+.navgrid button span{font-size:12px;color:var(--sub)}
+h3.sec{font-size:15px;margin:18px 12px 6px}
+.spcard{background:#fff;border:1px solid var(--line);border-left:6px solid var(--orange);border-radius:10px;padding:10px 12px;margin:8px 12px;cursor:pointer}
+.spcard.isdone{border-left-color:#9ca3af;opacity:.85}
+.sphead{display:flex;align-items:center;gap:8px}
+.sproom{font-size:18px;font-weight:700}
+.spdate{font-size:13px;color:var(--sub)}
+.tag{display:inline-block;margin-left:6px;padding:1px 6px;border-radius:6px;background:#fee2e2;color:var(--red);font-size:11px;font-weight:700}
+.sptext{white-space:pre-wrap;margin:6px 0;font-size:15px}
+.spbtn{margin-top:8px}
+.spbtn button{width:100%;padding:10px}
+.list table{width:100%;border-collapse:collapse;background:#fff;font-size:13px}
+.list th,.list td{border-bottom:1px solid var(--line);padding:8px 6px;text-align:left;vertical-align:top}
+.hsp{padding:2px 0 6px;cursor:pointer}
+.sheet-bg{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:20;display:flex;align-items:flex-end;justify-content:center}
+.sheet{background:#fff;width:100%;max-width:520px;border-radius:16px 16px 0 0;padding:16px 16px calc(16px + env(safe-area-inset-bottom));max-height:85vh;overflow:auto}
+.sheet h3{margin:0 0 8px}
+.sheet .spcard{margin:8px 0}
+.sheet .row{display:flex;gap:8px;margin-top:12px}
+.sheet .row button{flex:1;padding:12px}
+.kv{font-size:13px;color:var(--sub);margin:4px 0}
+.note{white-space:pre-wrap;background:#fff7e6;border-radius:8px;padding:10px;margin:8px 0}
+#toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#111;color:#fff;padding:10px 16px;border-radius:999px;font-size:14px;opacity:0;transition:opacity .2s;z-index:30;pointer-events:none;max-width:90vw}
+#toast.show{opacity:1}
+.sh{font-size:16px;margin:24px 0 8px;padding-top:12px;border-top:1px solid var(--line)}
+.card0{background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px;margin:8px 0}
+.chk{display:flex;align-items:center;gap:8px;margin:10px 0;font-size:14px}
+.chk input{width:auto}
+.loglist{list-style:none;padding:0;margin:8px 0}
+.loglist li{border-bottom:1px solid var(--line);padding:8px 0;font-size:13px;line-height:1.5}
+.list tr[data-r],.list tr[data-uid]{cursor:pointer}
+</style>
+</head>
+<body>
+
+<div id="loginView" class="screen hidden">
+  <h1>清掃管理システム YATTA</h1>
+  <div class="field"><label>社員番号</label><input id="empNo" inputmode="text" autocomplete="username" autocapitalize="off"></div>
+  <div class="field"><label>パスワード</label><input id="password" type="password" autocomplete="current-password"></div>
+  <button id="loginBtn" class="primary">ログイン</button>
+  <p id="loginErr" class="kv"></p>
+  <p class="kv">アカウントは管理者が登録します。パスワードを忘れた場合は管理者に連絡してください。</p>
+</div>
+
+<div id="appView" class="hidden">
+  <header>
+    <button id="homeBtn">トップ</button>
+    <div class="who"><b id="viewTitle"></b><br><span id="who"></span></div>
+    <button id="syncBadge" class="sync ok">同期済み</button>
+    <button id="switchBtn" class="hidden">表示切替</button>
+    <button id="setBtn">⚙</button>
+  </header>
+
+  <section id="v-home" class="view"><div id="homeBody"></div></section>
+
+  <section id="v-sched" class="view hidden">
+    <div class="bar"><span class="lbl">日付</span><div class="seg targetSeg" id="schedTarget"></div><button id="draftBtn">前日から下書き</button></div>
+    <div class="bar">
+      <span class="lbl">ペン</span>
+      <div class="seg" id="penSeg"><button data-pen="red" class="pen-red">赤 連泊清掃</button><button data-pen="co" class="pen-co">赤 C/O</button><button data-pen="green" class="pen-green">緑 清掃なし</button><button data-pen="erase" class="pen-erase">消す</button></div>
+    </div>
+    <div class="bar"><input id="rangeIn" placeholder="まとめて塗る 例: 201-215, 310"><button id="rangeBtn">塗る</button></div>
+    <div class="summary" id="schedSum"></div>
+    <div class="bar floorbar" id="schedFloors"></div>
+    <div class="legend">ペンを選んで部屋をタップ。同じペンでもう一度タップすると未入力（灰）に戻ります。C/O はフロント画面だけの印で、管理課には同じ赤で表示されます。白は管理課が完了済み。</div>
+    <div id="schedBoard"></div>
+  </section>
+
+  <section id="v-spin" class="view hidden">
+    <div class="card">
+      <div class="field"><label>対応日</label><div class="seg targetSeg" id="spinTarget"></div></div>
+      <div class="field"><label>部屋番号（複数可 例: 201, 305）</label><input id="spRoom"></div>
+      <div class="field"><label>特別対応の内容（お客様の氏名は書かない）</label><textarea id="spText" rows="3" placeholder="例：アメニティ2名分追加"></textarea></div>
+      <button id="spAdd" class="primary">指示を追加</button>
+    </div>
+    <div id="spinList"></div>
+  </section>
+
+  <section id="v-board" class="view hidden">
+    <div class="summary" id="boardSum"></div>
+    <div class="bar floorbar" id="boardFloors"></div>
+    <div class="legend">赤：要清掃／緑：清掃なし（タオル補充）→ 終わったらタップで白。オレンジ帯：特別対応あり（帯をタップで内容）</div>
+    <div id="boardGrid"></div>
+  </section>
+
+  <section id="v-report" class="view hidden"><div id="reportList"></div></section>
+
+  <section id="v-hist" class="view hidden">
+    <div class="bar"><input type="date" id="histDate" style="flex:0 1 auto;min-width:0"><input id="histRoom" placeholder="部屋番号" style="flex:0 1 110px;min-width:0"><button id="histRoomBtn">操作履歴</button></div>
+    <div class="summary" id="histSum"></div>
+    <div class="bar floorbar" id="histFloors"></div>
+    <div class="legend">部屋の行をタップすると、その日の操作履歴（誰がいつ何を変更したか）が見られます。</div>
+    <div id="histBody" class="list"></div>
+  </section>
+</div>
+
+<div id="settingsView" class="screen hidden">
+  <h1>設定</h1>
+  <h3 class="sh">アカウント</h3>
+  <p class="kv" id="acctInfo"></p>
+  <div class="btnrow"><button id="pwBtn">パスワード変更</button><button id="logoutBtn">ログアウト</button></div>
+
+  <div id="adminSec" class="hidden">
+    <h3 class="sh">部屋番号（管理者）</h3>
+    <div class="field"><label>1行に1フロア「階: 部屋番号」。範囲は「-」、区切りは「,」</label>
+      <textarea id="roomsTa" rows="10" placeholder="2: 201-230&#10;3: 301-330, 335"></textarea></div>
+    <p class="kv" id="setInfo"></p>
+    <button id="setSave" class="primary">部屋番号を保存</button>
+
+    <h3 class="sh">社員の登録（管理者）</h3>
+    <div class="card0">
+      <div class="field"><label>社員番号（ログインID）</label><input id="uNo" autocapitalize="off"></div>
+      <div class="field"><label>名前（画面と履歴に表示）</label><input id="uName"></div>
+      <div class="field"><label>所属</label><select id="uDept"><option value="front">フロント</option><option value="hk">管理課</option></select></div>
+      <label class="chk"><input type="checkbox" id="uAdmin"> 管理者にする</label>
+      <div class="field"><label>初期パスワード（6文字以上。本人にログイン後の変更を依頼）</label><input id="uPw" autocomplete="new-password"></div>
+      <button id="uAdd" class="primary">登録</button>
+    </div>
+    <div id="userList"></div>
+  </div>
+
+  <div class="btnrow" style="margin-top:20px"><button id="setCancel">戻る</button></div>
+</div>
+
+<div id="sheetBg" class="sheet-bg hidden"><div class="sheet" id="sheet"></div></div>
+<div id="toast"></div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getAuth, initializeAuth, inMemoryPersistence, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut, updatePassword, reauthenticateWithCredential, EmailAuthProvider } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager, doc, collection, query, where, onSnapshot, getDocs, getDocsFromServer, writeBatch, deleteField, serverTimestamp, Timestamp, terminate, clearIndexedDbPersistence } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+// ===== Firebase の設定（Firebaseコンソールの値を貼り付け） =====
+const firebaseConfig = {
+  apiKey: "PASTE_HERE",
+  authDomain: "PASTE_HERE",
+  projectId: "PASTE_HERE",
+  storageBucket: "PASTE_HERE",
+  messagingSenderId: "PASTE_HERE",
+  appId: "PASTE_HERE"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = initializeFirestore(app, { localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }) });
+// 管理者が社員アカウントを作るための2つ目の認証（作成しても管理者自身のログインは切れない）
+let auth2 = null;
+function adminAuth() {
+  if (!auth2) auth2 = initializeAuth(initializeApp(firebaseConfig, "yatta-admin"), { persistence: inMemoryPersistence });
+  return auth2;
+}
+
+const KEEP_DAYS = 30;       // 履歴画面で見られる日数
+const LOG_KEEP_DAYS = 90;   // 操作履歴の保存日数（仮。確定後に変更）
+const EMAIL_DOMAIN = "yatta.local"; // 社員番号をログイン用のメール形式に変換（実際にメールは送られない）
+const EMP_RE = /^[A-Za-z0-9_-]{1,32}$/;
+const JST = 9 * 3600 * 1000; // 日付・時刻はすべて日本時間で判定（端末の時刻設定に依存しない）
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const pad = n => String(n).padStart(2, "0");
+const ymdU = d => `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}`;
+const ymdParts = s => String(s).split("-").map(Number);
+const T = () => ymdU(new Date(Date.now() + JST));
+const shiftYmd = (s, n) => { const [y, m, d] = ymdParts(s); return ymdU(new Date(Date.UTC(y, m - 1, d + n))); };
+const T1 = () => shiftYmd(T(), 1);
+const now = () => serverTimestamp();
+const expireAfter = (s, days) => { const [y, m, d] = ymdParts(s); return Timestamp.fromMillis(Date.UTC(y, m - 1, d + days) - JST); };
+const expireFor = s => expireAfter(s, KEEP_DAYS + 2);
+const empEmail = no => `${no}@${EMAIL_DOMAIN}`;
+const normNo = s => String(s || "").normalize("NFKC").trim();
+const notice = m => `<p class="notice">${m}</p>`;
+const bind = (id, fn) => { const e = $(id); if (e) e.onclick = fn; };
+const fail = e => toast("保存に失敗しました: " + (e && e.code ? e.code : e));
+function lsGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+function lsSet(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* ignore */ } }
+function md(s) { if (!/^\d{4}-\d{2}-\d{2}$/.test(s || "")) return ""; const [y, m, d] = ymdParts(s); return `${m}/${d}(${"日月火水木金土"[new Date(Date.UTC(y, m - 1, d)).getUTCDay()]})`; }
+const hm = ms => { const d = new Date(ms + JST); return `${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}`; };
+function tm(t) { return t && t.toMillis ? hm(t.toMillis()) : "送信中"; }
+
+const VIEWS = { home: "トップ", sched: "清掃日程表", spin: "特別対応指示表", board: "清掃ボード", report: "特別対応完了報告", hist: "履歴" };
+const DEPT = { front: "フロント", hk: "管理課" };
+const S = {
+  me: null, role: null, staff: "",
+  today: T(), tomorrow: T1(), target: null,
+  cfg: { floors: {} }, roomFloor: {}, users: [],
+  days: {}, open: [], openByRoom: {}, doneToday: [],
+  view: "home", pen: "red", floorSel: "all", onlyOpen: false,
+  hist: { date: null, loading: false, day: {}, sps: [] },
+  unsub: {},
+  sync: { pending: 0, err: null, last: null }, meta: {}
+};
+
+let toastTimer;
+function toast(m) { const t = $("toast"); t.textContent = m; t.classList.add("show"); clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove("show"), 2600); }
+function show(id) { ["loginView", "appView", "settingsView"].forEach(v => $(v).classList.toggle("hidden", v !== id)); }
+
+// ===== 部屋番号 =====
+// bad を渡すと、読み取れない範囲指定（逆順・300室超）をそこに入れる
+function parseRooms(s, bad) {
+  const out = [];
+  for (const tok of String(s).normalize("NFKC").split(/[\s,、]+/)) {
+    if (!tok) continue;
+    const m = tok.match(/^(\d+)[-~〜ー](\d+)$/);
+    if (m) {
+      const a = +m[1], b = +m[2], w = m[1].length;
+      if (b >= a && b - a <= 300) for (let i = a; i <= b; i++) out.push(String(i).padStart(w, "0"));
+      else if (bad) bad.push(tok);
+    } else out.push(tok);
+  }
+  return [...new Set(out)];
+}
+function compress(rooms) {
+  const out = []; let i = 0;
+  const num = s => /^\d+$/.test(s);
+  while (i < rooms.length) {
+    let j = i;
+    while (j + 1 < rooms.length && num(rooms[j]) && num(rooms[j + 1]) && +rooms[j + 1] === +rooms[j] + 1 && rooms[j + 1].length === rooms[i].length) j++;
+    if (j > i + 1) out.push(`${rooms[i]}-${rooms[j]}`);
+    else if (j === i + 1) out.push(rooms[i], rooms[j]);
+    else out.push(rooms[i]);
+    i = j + 1;
+  }
+  return out.join(", ");
+}
+function floorsSorted() {
+  return Object.keys(S.cfg.floors).sort((a, b) => ((parseFloat(a) || 0) - (parseFloat(b) || 0)) || a.localeCompare(b));
+}
+function visibleFloors() {
+  const fs = floorsSorted();
+  if (S.floorSel !== "all" && !fs.includes(S.floorSel)) S.floorSel = "all";
+  return S.floorSel === "all" ? fs : [S.floorSel];
+}
+const roomNum = r => parseFloat(r) || 0;
+const bySp = (a, b) => (a.date || "").localeCompare(b.date || "") || (roomNum(a.room) - roomNum(b.room)) || String(a.room).localeCompare(String(b.room));
+
+// ===== 状態 =====
+const dayOf = d => S.days[d] || {};
+const st = (f, r, d = S.today) => { const o = dayOf(d); return (o[f] && o[f][r]) || {}; };
+const isOpenRoom = (f, r) => { const x = st(f, r); return (x.s && !x.doneBy) || (S.openByRoom[r] || []).length > 0; };
+const curPen = x => !x.s ? null : (x.s === "red" && x.co ? "co" : x.s);
+const defaultTarget = () => S.today; // 日程表は 23:59 まで今日を初期表示（明日は手動で切替）
+// pen: "red"（連泊清掃）/ "co"（チェックアウト清掃・管理課には赤で表示）/ "green" / null（未入力）
+function stateData(pen) {
+  if (!pen) return { s: deleteField(), co: deleteField(), setBy: deleteField(), setAt: deleteField(), doneBy: deleteField(), doneAt: deleteField() };
+  return { s: pen === "green" ? "green" : "red", co: pen === "co" ? true : deleteField(), setBy: S.staff, setAt: now(), doneBy: deleteField(), doneAt: deleteField() };
+}
+function stateLabel(x) {
+  if (!x.s) return "未入力";
+  let t = x.s === "red" ? (x.co && S.role === "front" ? "要清掃（C/O）" : "要清掃") : "清掃なし（タオル補充）";
+  if (x.setBy) t += `（指示：${esc(x.setBy)} ${tm(x.setAt)}）`;
+  t += x.doneBy ? ` → 完了：${esc(x.doneBy)} ${tm(x.doneAt)}` : " → 未完了";
+  return t;
+}
+// 操作履歴に残す部屋の状態（変更前・変更後）
+const snapState = x => ({ s: x.s || null, co: !!x.co, done: x.doneBy || null });
+const penAfter = pen => ({ s: pen ? (pen === "green" ? "green" : "red") : null, co: pen === "co", done: null });
+const roomItem = (f, r, pen) => ({ f, r, data: stateData(pen), a: penAfter(pen) });
+
+// ===== 同期状態 =====
+// 書き込みはすべて track() を通す。サーバー反映まで「同期中」、失敗したら「同期エラー」
+function track(p) {
+  S.sync.pending++; syncUI();
+  return p.then(() => { S.sync.pending--; S.sync.err = null; S.sync.last = Date.now(); syncUI(); return true; },
+    e => { S.sync.pending--; S.sync.err = (e && e.code) || String(e); syncUI(); fail(e); return false; });
+}
+function setMeta(key, snap) {
+  S.meta[key] = { c: snap.metadata.fromCache, p: snap.metadata.hasPendingWrites };
+  if (!snap.metadata.fromCache && !snap.metadata.hasPendingWrites) S.sync.last = Date.now();
+  syncUI();
+}
+const hasPending = () => S.sync.pending > 0 || Object.values(S.meta).some(m => m.p);
+function syncUI() {
+  const el = $("syncBadge"); if (!el) return;
+  const ms = Object.values(S.meta);
+  const cache = ms.some(m => m.c), pend = hasPending();
+  const n = S.sync.pending ? ` ${S.sync.pending}件` : "";
+  let cls, txt;
+  if (S.sync.err) { cls = "err"; txt = "同期エラー"; }
+  else if (!navigator.onLine) { cls = "off"; txt = pend ? `オフライン・未送信${n || "あり"}` : "オフライン"; }
+  else if (cache) { cls = "off"; txt = "接続中…"; }
+  else if (pend) { cls = "busy"; txt = "同期中" + n; }
+  else { cls = "ok"; txt = "同期済み" + (S.sync.last ? " " + hm(S.sync.last) : ""); }
+  el.className = "sync " + cls; el.textContent = txt;
+}
+$("syncBadge").onclick = () => {
+  if (S.sync.err) { alert(`保存に失敗した操作があります（${S.sync.err}）。\n画面の状態を確認し、必要なら入力し直してください。`); S.sync.err = null; syncUI(); }
+  else toast($("syncBadge").textContent);
+};
+window.addEventListener("online", syncUI);
+window.addEventListener("offline", syncUI);
+
+// ===== 書き込み＋操作履歴 =====
+// データの変更と操作履歴（logs）は同じバッチで書き込む（片方だけ保存されることはない）
+function addLog(batch, data) {
+  batch.set(doc(collection(db, "logs")), { ...data, uid: S.me.uid, name: S.staff, at: serverTimestamp(), expireAt: expireAfter(T(), LOG_KEEP_DAYS) });
+}
+// items: [{ f, r, data, a, b? }]  1フロア＝1ドキュメント、操作履歴もフロアごとに1件
+function writeRooms(d, type, items) {
+  if (!items.length) return Promise.resolve(false);
+  const byF = {};
+  items.forEach(it => { (byF[it.f] = byF[it.f] || []).push(it); });
+  const batch = writeBatch(db), expireAt = expireFor(d);
+  for (const [f, list] of Object.entries(byF)) {
+    const rooms = {}, changes = {};
+    list.forEach(it => { rooms[it.r] = it.data; changes[it.r] = { b: it.b || snapState(st(f, it.r, d)), a: it.a }; });
+    batch.set(doc(db, "days", d, "floors", f), { rooms, expireAt }, { merge: true });
+    addLog(batch, { kind: "room", type, date: d, floor: f, rooms: Object.keys(changes), changes });
+  }
+  return track(batch.commit());
+}
+async function serverDay(d) {
+  const snap = await getDocsFromServer(collection(db, "days", d, "floors"));
+  const o = {}; snap.forEach(s => { o[s.id] = s.data().rooms || {}; });
+  return o;
+}
+
+// ===== 認証 =====
+onAuthStateChanged(auth, user => {
+  cleanup();
+  if (!user) { show("loginView"); return; }
+  $("loginErr").textContent = "";
+  // 管理者が登録した社員（users/{uid}）で、利用中（active）の人だけが使える
+  S.unsub.me = onSnapshot(doc(db, "users", user.uid), snap => {
+    const u = snap.exists() ? snap.data() : null;
+    if (!u || u.active !== true) {
+      $("loginErr").textContent = u ? "このアカウントは利用停止中です。管理者に連絡してください。" : "このアカウントは登録されていません。管理者に連絡してください。";
+      signOut(auth);
+      return;
+    }
+    const first = !S.me;
+    S.me = { uid: user.uid, empNo: u.empNo, name: u.name, dept: u.dept, admin: u.admin === true };
+    S.staff = u.name;
+    const v = lsGet("yatta_view");
+    S.role = S.me.admin && (v === "front" || v === "hk") ? v : u.dept;
+    if (first) { listenCfg(); listenOpen(); listenDays(); listenUsers(); startApp(); }
+    else { updateWho(); render(); }
+  }, e => {
+    $("loginErr").textContent = "アカウント情報を読み込めませんでした（" + e.code + "）";
+    signOut(auth);
+  });
+});
+$("loginBtn").onclick = async () => {
+  $("loginErr").textContent = "";
+  const no = normNo($("empNo").value);
+  if (!EMP_RE.test(no)) { $("loginErr").textContent = "社員番号を確認してください"; return; }
+  try { await signInWithEmailAndPassword(auth, empEmail(no), $("password").value); $("password").value = ""; }
+  catch (e) { $("loginErr").textContent = "ログインできませんでした（" + e.code + "）"; }
+};
+function stop(k) { if (S.unsub[k]) { S.unsub[k](); S.unsub[k] = null; } }
+function cleanup() {
+  Object.keys(S.unsub).forEach(stop);
+  S.me = null; S.days = {}; S.open = []; S.openByRoom = {}; S.doneToday = []; S.users = []; S.meta = {};
+  closeSheet(); syncUI();
+}
+// ログアウト時は端末内のキャッシュも消す（共用・紛失時の対策）
+async function logout() {
+  if (hasPending() && !confirm("まだ送信されていない操作があります。ログアウトすると失われます。ログアウトしますか？")) return;
+  if (!hasPending() && !confirm("ログアウトしますか？")) return;
+  try { await signOut(auth); } catch (e) { /* ignore */ }
+  try { await terminate(db); await clearIndexedDbPersistence(db); } catch (e) { /* ignore */ }
+  try { localStorage.removeItem("yatta_view"); } catch (e) { /* ignore */ }
+  location.reload();
+}
+
+// ===== リスナー =====
+function listenCfg() {
+  S.unsub.cfg = onSnapshot(doc(db, "config", "hotel"), { includeMetadataChanges: true }, snap => {
+    setMeta("cfg", snap);
+    const d = snap.data() || {};
+    S.cfg = { floors: d.floors || {} };
+    S.roomFloor = {};
+    for (const [f, rooms] of Object.entries(S.cfg.floors)) rooms.forEach(r => { S.roomFloor[r] = f; });
+    render();
+  }, e => toast("設定の読み込みに失敗しました: " + e.code));
+}
+function listenUsers() {
+  S.unsub.users = onSnapshot(collection(db, "users"), snap => {
+    S.users = snap.docs.map(x => ({ uid: x.id, ...x.data() }))
+      .sort((a, b) => String(a.empNo).localeCompare(String(b.empNo), "ja", { numeric: true }));
+    if (!$("settingsView").classList.contains("hidden")) renderUsers();
+  }, e => toast("社員一覧の読み込みに失敗しました: " + e.code));
+}
+let openInit = false;
+function listenOpen() {
+  openInit = false;
+  S.unsub.open = onSnapshot(query(collection(db, "specials"), where("done", "==", false)), { includeMetadataChanges: true }, snap => {
+    setMeta("open", snap);
+    if (openInit && !snap.docChanges().length) return;
+    openInit = true;
+    S.open = snap.docs.map(x => ({ id: x.id, ...x.data() })).sort(bySp);
+    S.openByRoom = {};
+    S.open.forEach(sp => { (S.openByRoom[sp.room] = S.openByRoom[sp.room] || []).push(sp); });
+    render();
+  }, e => toast("特別対応の読み込みに失敗しました: " + e.code));
+}
+function listenDays() {
+  stop("d0"); stop("d1"); stop("doneSp");
+  delete S.meta.d0; delete S.meta.d1; delete S.meta.doneSp;
+  S.today = T(); S.tomorrow = T1(); S.days = {}; S.doneToday = [];
+  if (!S.target || S.target < S.today || S.target > S.tomorrow) S.target = defaultTarget();
+  [S.today, S.tomorrow].forEach((d, i) => {
+    S.unsub["d" + i] = onSnapshot(collection(db, "days", d, "floors"), { includeMetadataChanges: true }, snap => {
+      setMeta("d" + i, snap);
+      if (S.days[d] && !snap.docChanges().length) return; // 同期状態だけの変化なら再描画しない
+      const o = {}; snap.forEach(s => { o[s.id] = s.data().rooms || {}; });
+      S.days[d] = o; render();
+    }, e => toast("読み込みに失敗しました: " + e.code));
+  });
+  let doneInit = false;
+  S.unsub.doneSp = onSnapshot(query(collection(db, "specials"), where("doneDate", "==", S.today)), { includeMetadataChanges: true }, snap => {
+    setMeta("doneSp", snap);
+    if (doneInit && !snap.docChanges().length) return;
+    doneInit = true;
+    S.doneToday = snap.docs.map(x => ({ id: x.id, ...x.data() })).sort(bySp);
+    render();
+  }, e => toast("読み込みに失敗しました: " + e.code));
+}
+
+// 日付（日本時間）が変わったら当日分に切替。10秒ごと＋画面復帰時に確認
+function rollDay() {
+  if (!S.me || T() === S.today) return false;
+  listenDays(); setDateRange();
+  if (S.view === "hist" && S.hist.date) loadHist();
+  render();
+  return true;
+}
+setInterval(rollDay, 10000);
+document.addEventListener("visibilitychange", () => { if (!document.hidden) { rollDay(); syncUI(); } });
+
+// ===== 画面切替 =====
+function updateWho() {
+  $("who").textContent = `${DEPT[S.role]}：${S.staff}${S.me.admin ? "（管理者）" : ""}`;
+  $("switchBtn").classList.toggle("hidden", !S.me.admin);
+}
+function startApp() {
+  show("appView");
+  updateWho();
+  setDateRange();
+  go("home");
+}
+// 管理者だけ、フロント／管理課の表示を切り替えられる
+$("switchBtn").onclick = () => {
+  if (!S.me || !S.me.admin) return;
+  S.role = S.role === "front" ? "hk" : "front";
+  lsSet("yatta_view", S.role);
+  updateWho(); go("home");
+  toast(`${DEPT[S.role]}の表示に切り替えました`);
+};
+function setDateRange() { $("histDate").max = T(); $("histDate").min = shiftYmd(T(), -KEEP_DAYS); }
+function go(v) {
+  if ((v === "sched" || v === "spin") && S.view === "home") S.target = defaultTarget();
+  S.view = v;
+  document.querySelectorAll(".view").forEach(e => e.classList.toggle("hidden", e.id !== "v-" + v));
+  $("viewTitle").textContent = VIEWS[v];
+  if (v === "hist") { if (!$("histDate").value) $("histDate").value = S.today; loadHist(); }
+  render();
+  window.scrollTo(0, 0);
+}
+$("homeBtn").onclick = () => go("home");
+
+function render() {
+  if ($("appView").classList.contains("hidden") || !S.me) return;
+  const v = S.view;
+  if (v === "home") renderHome();
+  else if (v === "sched") renderSched();
+  else if (v === "spin") renderSpin();
+  else if (v === "board") renderBoard();
+  else if (v === "report") renderReport();
+  else if (v === "hist") renderHist();
+}
+
+// ===== 共通パーツ =====
+function counts(day, floors) {
+  const c = { red: 0, redD: 0, green: 0, greenD: 0, none: 0 };
+  for (const f of floors) for (const r of S.cfg.floors[f] || []) {
+    const x = (day[f] && day[f][r]) || {};
+    if (x.s === "red") { c.red++; if (x.doneBy) c.redD++; }
+    else if (x.s === "green") { c.green++; if (x.doneBy) c.greenD++; }
+    else c.none++;
+  }
+  return c;
+}
+function sumHTML(c) {
+  return `<span><i class="dot red"></i>要清掃 <b>${c.redD}</b>/${c.red}</span><span><i class="dot green"></i>清掃なし <b>${c.greenD}</b>/${c.green}</span><span><i class="dot"></i>未入力 ${c.none}</span>`;
+}
+const spCountHTML = () => `<span><i class="dot orange"></i>特別対応 未完了 <b>${S.open.length}</b></span>`;
+function floorBarHTML(withOpen) {
+  const fs = floorsSorted();
+  return [
+    `<button class="chip ${S.floorSel === "all" ? "on" : ""}" data-f="all">全館</button>`,
+    ...fs.map(f => `<button class="chip ${S.floorSel === f ? "on" : ""}" data-f="${esc(f)}">${esc(f)}F</button>`),
+    withOpen ? `<button class="chip ${S.onlyOpen ? "on" : ""}" data-open="1">未完了のみ</button>` : ""
+  ].join("");
+}
+document.querySelectorAll(".floorbar").forEach(el => {
+  el.onclick = e => {
+    const b = e.target.closest("button"); if (!b) return;
+    if (b.dataset.open) S.onlyOpen = !S.onlyOpen; else S.floorSel = b.dataset.f;
+    render();
+  };
+});
+function tileHTML(f, r, d = S.today) {
+  const x = st(f, r, d);
+  const n = (S.openByRoom[r] || []).length;
+  const cls = !x.s ? "none" : (x.doneBy ? `done b-${x.s}` : x.s);
+  const co = S.role === "front" && x.s === "red" && x.co ? `<span class="co">C/O</span>` : "";
+  return `<div class="tile ${cls}" data-f="${esc(f)}" data-r="${esc(r)}">${n ? `<span class="spband" data-band="1">特別対応${n > 1 ? " ×" + n : ""}</span>` : ""}<span class="no">${esc(r)}</span><span class="by">${x.doneBy ? esc(x.doneBy) : ""}</span>${co}</div>`;
+}
+function spCardHTML(sp, btn) {
+  const carried = !sp.done && sp.date < S.today;
+  const ahead = !sp.done && sp.date > S.today;
+  let h = `<div class="spcard ${sp.done ? "isdone" : ""}" data-sp="${esc(sp.id)}">`;
+  h += `<div class="sphead"><span class="sproom">${esc(sp.room)}</span><span class="spdate">${md(sp.date)}${carried ? '<span class="tag">持ち越し</span>' : ""}${ahead ? '<span class="tag next">明日分</span>' : ""}</span></div>`;
+  h += `<div class="sptext">${esc(sp.text)}</div>`;
+  h += `<div class="kv">指示：${esc(sp.createdBy || "")} ${tm(sp.createdAt)}</div>`;
+  if (sp.done) h += `<div class="kv">✓ 対応：${esc(sp.handler || "")}${sp.note ? `「${esc(sp.note)}」` : ""}${sp.reportedBy && sp.reportedBy !== sp.handler ? `（報告：${esc(sp.reportedBy)}）` : ""} ${md(sp.doneDate)} ${tm(sp.doneAt)}</div>`;
+  if (btn) h += `<div class="spbtn"><button class="${sp.done ? "" : "primary"}">${esc(btn)}</button></div>`;
+  return h + "</div>";
+}
+function findSp(id) { return [...S.open, ...S.doneToday, ...S.hist.sps].find(s => s.id === id); }
+function spClick(e) { const c = e.target.closest("[data-sp]"); if (c) { spSheet(c.dataset.sp); return true; } return false; }
+function targetSegHTML() {
+  return `<button data-t="${S.today}" class="${S.target === S.today ? "on" : ""}">今日 ${md(S.today)}</button><button data-t="${S.tomorrow}" class="${S.target === S.tomorrow ? "on" : ""}">明日 ${md(S.tomorrow)}</button>`;
+}
+document.querySelectorAll(".targetSeg").forEach(el => {
+  el.onclick = e => { const b = e.target.closest("button"); if (!b) return; S.target = b.dataset.t; render(); };
+});
+
+// ===== トップ =====
+function renderHome() {
+  const nav = S.role === "front"
+    ? [["sched", "清掃日程表", "部屋ごとに 要清掃（赤）／清掃なし（緑）を入力"], ["spin", "特別対応指示表", "特別な対応の内容を入力"], ["hist", "履歴", "過去30日の記録"]]
+    : [["board", "清掃ボード", "清掃・タオル補充が終わったらタップ"], ["report", "特別対応完了報告", "対応した人を記入して完了"], ["hist", "履歴", "過去30日の記録"]];
+  const all = floorsSorted();
+  let h = `<div class="pad"><div class="kv">今日 ${md(S.today)} の状況</div></div>`;
+  h += `<div class="summary">${sumHTML(counts(dayOf(S.today), all))}</div>`;
+  if (S.role === "front") {
+    const c = counts(dayOf(S.tomorrow), all);
+    h += `<div class="pad"><div class="kv">明日 ${md(S.tomorrow)} の日程表：入力済み ${c.red + c.green}室／未入力 ${c.none}室</div></div>`;
+  }
+  h += `<div class="pad"><div class="navgrid">${nav.map(([v, t, d]) => `<button data-go="${v}"><b>${t}</b><span>${d}</span></button>`).join("")}</div></div>`;
+  h += `<h3 class="sec"><i class="dot orange"></i>未完了の特別対応（${S.open.length}件）</h3>`;
+  h += S.open.length ? S.open.map(sp => spCardHTML(sp, S.role === "hk" ? "完了報告" : "")).join("") : notice("未完了の特別対応はありません。");
+  if (!all.length) h = notice(S.me.admin ? "部屋が未登録です。⚙ 設定から部屋番号を登録してください。" : "部屋が未登録です。管理者に登録を依頼してください。") + h;
+  $("homeBody").innerHTML = h;
+}
+$("homeBody").onclick = e => {
+  const g = e.target.closest("[data-go]"); if (g) return go(g.dataset.go);
+  spClick(e);
+};
+
+// ===== フロント：清掃日程表（対象日 = S.target） =====
+const PEN_NAME = { red: "赤（連泊清掃）", co: "赤（C/O）", green: "緑（清掃なし）", erase: "未入力（消す）" };
+$("penSeg").onclick = e => { const b = e.target.closest("button"); if (!b) return; S.pen = b.dataset.pen; render(); };
+function renderSched() {
+  $("schedTarget").innerHTML = targetSegHTML();
+  document.querySelectorAll("#penSeg button").forEach(b => b.classList.toggle("on", b.dataset.pen === S.pen));
+  const fs = visibleFloors();
+  $("schedSum").innerHTML = `<span>${md(S.target)}</span>` + sumHTML(counts(dayOf(S.target), fs));
+  $("schedFloors").innerHTML = floorBarHTML(false);
+  if (!fs.length) { $("schedBoard").innerHTML = notice("部屋が未登録です。"); return; }
+  const lbl = S.pen === "erase" ? "未完了を消す" : `未入力→${PEN_NAME[S.pen]}`;
+  $("schedBoard").innerHTML = fs.map(f =>
+    `<section class="floor"><h2>${esc(f)}F<span class="fl-actions"><button data-bulk="${esc(f)}">${lbl}</button></span></h2><div class="grid">${S.cfg.floors[f].map(r => tileHTML(f, r, S.target)).join("")}</div></section>`
+  ).join("");
+}
+$("schedBoard").onclick = e => {
+  const b = e.target.closest("[data-bulk]"); if (b) return bulkFloor(b.dataset.bulk);
+  const t = e.target.closest(".tile"); if (!t) return;
+  if (e.target.closest("[data-band]")) return roomSheet(t.dataset.f, t.dataset.r, S.target);
+  paint(t.dataset.f, t.dataset.r);
+};
+function paint(f, r) {
+  const d = S.target, x = st(f, r, d), cur = curPen(x);
+  let ns;
+  if (x.doneBy) {
+    // 完了済みの部屋も変更できる。完了していた記録は操作履歴に残る
+    if (!confirm(`${r} は管理課が完了済みです（完了：${x.doneBy}）。\n変更すると完了表示は消えます（完了した記録は操作履歴に残ります）。よろしいですか？`)) return;
+    ns = S.pen === "erase" ? null : S.pen;
+  } else {
+    ns = (S.pen === "erase" || S.pen === cur) ? null : S.pen;
+  }
+  if (!ns && !x.s) return;
+  writeRooms(d, "set", [roomItem(f, r, ns)]);
+}
+function bulkFloor(f) {
+  const d = S.target, rooms = S.cfg.floors[f] || [], items = [];
+  if (S.pen === "erase") rooms.forEach(r => { const x = st(f, r, d); if (x.s && !x.doneBy) items.push(roomItem(f, r, null)); });
+  else rooms.forEach(r => { if (!st(f, r, d).s) items.push(roomItem(f, r, S.pen)); });
+  if (!items.length) return toast("対象の部屋はありません");
+  const msg = S.pen === "erase"
+    ? `${md(d)} ${f}F の未完了 ${items.length}室の入力を消しますか？`
+    : `${md(d)} ${f}F の未入力 ${items.length}室を「${PEN_NAME[S.pen]}」にしますか？`;
+  if (!confirm(msg)) return;
+  writeRooms(d, "floor", items);
+}
+// まとめ塗り：反映前に対象室数・未登録の番号・読み取れない指定を確認表示する
+$("rangeBtn").onclick = () => {
+  const d = S.target, items = [], unknown = [], bad = []; let skipped = 0;
+  const ns = S.pen === "erase" ? null : S.pen;
+  const list = parseRooms($("rangeIn").value, bad);
+  if (!list.length && !bad.length) return toast("部屋番号を入力してください");
+  list.forEach(r => {
+    const f = S.roomFloor[r];
+    if (!f) { unknown.push(r); return; }
+    const x = st(f, r, d);
+    if (x.doneBy) { skipped++; return; }
+    if (curPen(x) === ns) return;
+    items.push(roomItem(f, r, ns));
+  });
+  let msg = `${md(d)}：${items.length}室を「${PEN_NAME[S.pen]}」にします。`;
+  if (skipped) msg += `\n完了済みの${skipped}室は変更しません。`;
+  if (unknown.length) msg += `\n未登録の番号（反映しません）：${unknown.slice(0, 10).join(", ")}${unknown.length > 10 ? ` ほか${unknown.length - 10}件` : ""}`;
+  if (bad.length) msg += `\n読み取れない指定（反映しません）：${bad.join(", ")}`;
+  if (!items.length) return alert(msg + "\n\n変更する部屋はありません。");
+  if (!confirm(msg + "\n\nよろしいですか？")) return;
+  writeRooms(d, "range", items);
+  $("rangeIn").value = "";
+};
+// 前日から下書き：C/O→灰、連泊清掃→緑、緑が3日続いた→赤、それ以外の緑→緑。入力済みの部屋は変更しない
+// 上書き防止：端末内のデータではなく、必ずサーバーから最新を読み込んで判定する。確認後にもう一度読み直してから書き込む
+function draftPlan(cur, prev) {
+  const g = (o, f, r) => (o[f] && o[f][r]) || {};
+  const items = [], c = { red: 0, green: 0, co: 0 };
+  for (const f of floorsSorted()) for (const r of S.cfg.floors[f]) {
+    if (g(cur, f, r).s) continue;
+    const p1 = g(prev[0], f, r), p2 = g(prev[1], f, r), p3 = g(prev[2], f, r);
+    let ns = null;
+    if (p1.s === "red") { if (p1.co) { c.co++; continue; } ns = "green"; }
+    else if (p1.s === "green") ns = (p2.s === "green" && p3.s === "green") ? "red" : "green";
+    if (!ns) continue;
+    items.push({ ...roomItem(f, r, ns), b: snapState({}) });
+    c[ns]++;
+  }
+  return { items, c };
+}
+$("draftBtn").onclick = async () => {
+  const btn = $("draftBtn");
+  if (btn.disabled) return;
+  if (!navigator.onLine) return toast("下書きは通信できる状態で実行してください");
+  if (hasPending()) return toast("未送信の入力があります。「同期済み」になってから実行してください");
+  const D = S.target;
+  const ds = [1, 2, 3].map(n => shiftYmd(D, -n));
+  btn.disabled = true; btn.textContent = "読み込み中…";
+  try {
+    let cur, prev;
+    try { [cur, ...prev] = await Promise.all([D, ...ds].map(serverDay)); }
+    catch (e) { return toast("サーバーから読み込めませんでした。通信を確認してください（" + (e.code || e) + "）"); }
+    const p = draftPlan(cur, prev);
+    if (!p.c.red && !p.c.green) return toast("下書きできる部屋はありません（前日が未入力、または入力済み）");
+    if (!confirm(`${md(D)} の日程表を ${md(ds[0])} から下書きします。\n赤（4日目の清掃）${p.c.red}室／緑 ${p.c.green}室\n前日C/Oの${p.c.co}室は灰（未入力）のままです。\n入力済みの部屋は変更しません。`)) return;
+    // 確認している間に他の端末で入力された部屋を除くため、もう一度サーバーから読み直す
+    try { cur = await serverDay(D); }
+    catch (e) { return toast("サーバーから読み込めませんでした。もう一度実行してください（" + (e.code || e) + "）"); }
+    const q = draftPlan(cur, prev);
+    if (!q.c.red && !q.c.green) return toast("他の端末で入力済みのため、変更はありません");
+    btn.textContent = "保存中…";
+    if (await writeRooms(D, "draft", q.items)) toast(`下書きを作成しました（赤${q.c.red}室・緑${q.c.green}室）。C/O・チェックインなどを修正してください`);
+  } finally {
+    btn.disabled = false; btn.textContent = "前日から下書き";
+  }
+};
+
+// ===== フロント：特別対応指示表 =====
+$("spAdd").onclick = () => {
+  const bad = [], rooms = parseRooms($("spRoom").value, bad), text = $("spText").value.trim();
+  if (bad.length) return toast(`読み取れない指定：${bad.join(", ")}`);
+  if (!rooms.length) return toast("部屋番号を入力してください");
+  if (!text) return toast("内容を入力してください");
+  if (rooms.length > 200) return toast("一度に登録できるのは200室までです");
+  const unknown = rooms.filter(r => !S.roomFloor[r]);
+  if (unknown.length) return toast(`未登録の部屋：${unknown.slice(0, 5).join(", ")}`);
+  const batch = writeBatch(db);
+  rooms.forEach(r => {
+    const ref = doc(collection(db, "specials"));
+    batch.set(ref, { room: r, floor: S.roomFloor[r], date: S.target, text, createdBy: S.staff, createdAt: now(), done: false });
+    addLog(batch, { kind: "sp", type: "sp_add", sid: ref.id, room: r, date: S.target, a: { text } });
+  });
+  track(batch.commit());
+  $("spRoom").value = ""; $("spText").value = "";
+  toast(`${md(S.target)} 分として ${rooms.length}室（${rooms.slice(0, 8).join(", ")}${rooms.length > 8 ? " ほか" : ""}）に追加しました`);
+};
+function renderSpin() {
+  $("spinTarget").innerHTML = targetSegHTML();
+  let h = `<h3 class="sec"><i class="dot orange"></i>未完了（持ち越し含む ${S.open.length}件）</h3>`;
+  h += S.open.length ? S.open.map(sp => spCardHTML(sp, "")).join("") : notice("未完了の特別対応はありません。");
+  h += `<h3 class="sec">今日完了（${S.doneToday.length}件）</h3>`;
+  h += S.doneToday.length ? S.doneToday.map(sp => spCardHTML(sp, "")).join("") : notice("まだありません。");
+  $("spinList").innerHTML = h;
+}
+$("spinList").onclick = spClick;
+
+// ===== 管理課：清掃ボード =====
+function renderBoard() {
+  const fs = visibleFloors();
+  $("boardSum").innerHTML = sumHTML(counts(dayOf(S.today), fs)) + spCountHTML();
+  $("boardFloors").innerHTML = floorBarHTML(true);
+  if (!fs.length) { $("boardGrid").innerHTML = notice("部屋が未登録です。"); return; }
+  const html = fs.map(f => {
+    const rooms = S.cfg.floors[f].filter(r => !S.onlyOpen || isOpenRoom(f, r));
+    if (S.onlyOpen && !rooms.length) return "";
+    return `<section class="floor"><h2>${esc(f)}F</h2><div class="grid">${rooms.map(r => tileHTML(f, r)).join("")}</div></section>`;
+  }).join("");
+  $("boardGrid").innerHTML = html || notice("未完了の部屋はありません。");
+}
+$("boardGrid").onclick = e => {
+  if (rollDay()) return toast("日付が変わったため、今日の表示に切り替えました");
+  const t = e.target.closest(".tile"); if (!t) return;
+  const f = t.dataset.f, r = t.dataset.r;
+  if (e.target.closest("[data-band]")) return roomSheet(f, r);
+  const x = st(f, r);
+  if (!x.s) {
+    if ((S.openByRoom[r] || []).length) return roomSheet(f, r);
+    return toast(`${r} は清掃の指示がありません`);
+  }
+  if (x.doneBy) {
+    if (!confirm(`${r} の完了を取り消しますか？\n（完了者：${x.doneBy}）`)) return;
+    writeRooms(S.today, "undo", [{ f, r, data: { doneBy: deleteField(), doneAt: deleteField() }, a: { ...snapState(x), done: null } }]);
+  } else {
+    writeRooms(S.today, "done", [{ f, r, data: { doneBy: S.staff, doneAt: now() }, a: { ...snapState(x), done: S.staff } }]);
+  }
+};
+
+// ===== 管理課：特別対応完了報告 =====
+function renderReport() {
+  let h = `<h3 class="sec"><i class="dot orange"></i>未完了（持ち越し含む ${S.open.length}件）</h3>`;
+  h += S.open.length ? S.open.map(sp => spCardHTML(sp, "完了報告")).join("") : notice("未完了の特別対応はありません。");
+  h += `<h3 class="sec">今日完了（${S.doneToday.length}件）</h3>`;
+  h += S.doneToday.length ? S.doneToday.map(sp => spCardHTML(sp, "")).join("") : notice("まだありません。");
+  $("reportList").innerHTML = h;
+}
+$("reportList").onclick = spClick;
+
+// ===== 履歴 =====
+$("histDate").onchange = () => { if ($("histDate").value) loadHist(); };
+async function loadHist() {
+  const d = $("histDate").value || S.today;
+  S.hist = { date: d, loading: d !== S.today, day: {}, sps: [] };
+  render();
+  if (d === S.today) return;
+  try {
+    const [fl, a, b] = await Promise.all([
+      getDocs(collection(db, "days", d, "floors")),
+      getDocs(query(collection(db, "specials"), where("date", "==", d))),
+      getDocs(query(collection(db, "specials"), where("doneDate", "==", d)))
+    ]);
+    if (S.hist.date !== d) return;
+    const day = {}; fl.forEach(s => { day[s.id] = s.data().rooms || {}; });
+    const m = new Map(); [...a.docs, ...b.docs].forEach(s => m.set(s.id, { id: s.id, ...s.data() }));
+    S.hist = { date: d, loading: false, day, sps: [...m.values()].sort(bySp) };
+  } catch (e) {
+    toast("読み込みに失敗しました: " + e.code);
+    S.hist.loading = false;
+  }
+  render();
+}
+function renderHist() {
+  $("histFloors").innerHTML = floorBarHTML(false);
+  if (S.hist.loading) { $("histSum").innerHTML = ""; $("histBody").innerHTML = notice("読み込み中…"); return; }
+  const isT = S.hist.date === S.today;
+  const day = isT ? dayOf(S.today) : S.hist.day;
+  const sps = isT ? [...S.open, ...S.doneToday] : S.hist.sps;
+  const fs = visibleFloors();
+  $("histSum").innerHTML = sumHTML(counts(day, fs));
+  const byRoom = {}; sps.forEach(sp => { (byRoom[sp.room] = byRoom[sp.room] || []).push(sp); });
+  const rows = [];
+  for (const f of fs) for (const r of S.cfg.floors[f]) {
+    const x = (day[f] && day[f][r]) || {}, list = byRoom[r] || [];
+    if (!x.s && !list.length) continue;
+    const c = x.s ? `<i class="dot ${x.s}"></i>${x.s === "red" ? (x.co ? "要清掃（C/O）" : "要清掃") : "清掃なし"}<br>${x.doneBy ? `✓ ${esc(x.doneBy)} ${tm(x.doneAt)}` : "未完了"}` : "";
+    const s = list.map(sp => `<div class="hsp" data-sp="${esc(sp.id)}">${md(sp.date)} ${esc(sp.text)}<br>${sp.done ? `✓ ${esc(sp.handler || "")} ${md(sp.doneDate)} ${tm(sp.doneAt)}` : "未完了"}</div>`).join("");
+    rows.push(`<tr data-r="${esc(r)}"><td><b>${esc(r)}</b></td><td>${c}</td><td>${s}</td></tr>`);
+  }
+  $("histBody").innerHTML = rows.length
+    ? `<div style="padding:8px 12px 24px"><table><thead><tr><th>部屋</th><th>清掃</th><th>特別対応</th></tr></thead><tbody>${rows.join("")}</tbody></table></div>`
+    : notice("この日の記録はありません。（消去された部屋の履歴は、上の欄に部屋番号を入れて確認できます）");
+}
+$("histBody").onclick = e => {
+  if (spClick(e)) return;
+  const tr = e.target.closest("tr[data-r]");
+  if (tr) roomLogSheet(S.hist.date || S.today, tr.dataset.r);
+};
+$("histRoomBtn").onclick = () => {
+  const r = normNo($("histRoom").value);
+  if (!r) return toast("部屋番号を入力してください");
+  roomLogSheet($("histDate").value || S.today, r);
+};
+
+// ===== 操作履歴の表示 =====
+const LOG_TYPE = { set: "日程", floor: "フロア一括", range: "まとめ塗り", draft: "下書き", done: "清掃完了", undo: "完了取消",
+  sp_add: "登録", sp_edit: "内容修正", sp_delete: "削除", sp_done: "完了報告" };
+function fmtState(x) {
+  if (!x) return "";
+  const c = !x.s ? "灰（未入力）" : x.s === "green" ? "緑" : (x.co ? "赤（C/O）" : "赤");
+  return c + (x.done ? `・完了（${esc(x.done)}）` : "");
+}
+const logTime = l => l.at && l.at.toMillis ? l.at.toMillis() : 0;
+async function roomLogSheet(d, r) {
+  openSheetHTML(`<h3>${esc(r)} の操作履歴</h3><div class="kv">${md(d)}</div><p class="kv">読み込み中…</p><div class="row"><button id="shClose">閉じる</button></div>`);
+  try {
+    const snap = await getDocs(query(collection(db, "logs"), where("rooms", "array-contains", r)));
+    const list = snap.docs.map(x => x.data()).filter(l => l.date === d).sort((a, b) => logTime(a) - logTime(b));
+    const lines = list.map(l => {
+      const c = (l.changes || {})[r] || {};
+      return `<li><b>${l.at ? tm(l.at) : ""}</b> ${esc(l.name)}［${LOG_TYPE[l.type] || esc(l.type)}］<br>${fmtState(c.b)} → ${fmtState(c.a)}</li>`;
+    });
+    openSheetHTML(`<h3>${esc(r)} の操作履歴</h3><div class="kv">${md(d)}・${list.length}件</div>${lines.length ? `<ul class="loglist">${lines.join("")}</ul>` : `<p class="kv">この日の操作はありません</p>`}<div class="row"><button id="shClose">閉じる</button></div>`);
+  } catch (e) {
+    openSheetHTML(`<h3>${esc(r)} の操作履歴</h3><p class="kv">読み込めませんでした（${esc(e.code || e)}）</p><div class="row"><button id="shClose">閉じる</button></div>`);
+  }
+}
+async function spLogs(id) {
+  const box = $("spLogBox"); if (!box) return;
+  box.innerHTML = `<p class="kv">読み込み中…</p>`;
+  try {
+    const snap = await getDocs(query(collection(db, "logs"), where("sid", "==", id)));
+    const list = snap.docs.map(x => x.data()).sort((a, b) => logTime(a) - logTime(b));
+    box.innerHTML = list.length ? `<ul class="loglist">${list.map(l => {
+      let t = "";
+      if (l.type === "sp_edit") t = `「${esc(l.b && l.b.text)}」→「${esc(l.a && l.a.text)}」`;
+      else if (l.type === "sp_done") t = `対応：${esc(l.a && l.a.handler)}${l.a && l.a.note ? `「${esc(l.a.note)}」` : ""}`;
+      else if (l.type === "sp_add") t = `「${esc(l.a && l.a.text)}」`;
+      return `<li><b>${md(l.date)} ${l.at ? tm(l.at) : ""}</b> ${esc(l.name)}［${LOG_TYPE[l.type] || esc(l.type)}］<br>${t}</li>`;
+    }).join("")}</ul>` : `<p class="kv">操作履歴はありません</p>`;
+  } catch (e) { box.innerHTML = `<p class="kv">読み込めませんでした（${esc(e.code || e)}）</p>`; }
+}
+
+// ===== シート =====
+function openSheetHTML(h) { $("sheet").innerHTML = h; $("sheetBg").classList.remove("hidden"); bind("shClose", closeSheet); }
+function closeSheet() { $("sheetBg").classList.add("hidden"); }
+$("sheetBg").onclick = e => { if (e.target === $("sheetBg")) closeSheet(); };
+$("sheet").addEventListener("click", spClick);
+
+function roomSheet(f, r, d = S.today) {
+  const x = st(f, r, d);
+  const sps = [...(S.openByRoom[r] || []), ...S.doneToday.filter(s => s.room === r)];
+  let h = `<h3>${esc(r)}</h3><div class="kv">${md(d)} 清掃：${stateLabel(x)}</div>`;
+  h += sps.length ? sps.map(sp => spCardHTML(sp, !sp.done && S.role === "hk" ? "完了報告" : "")).join("") : `<p class="kv">特別対応はありません</p>`;
+  h += `<div class="row"><button id="shClose">閉じる</button></div>`;
+  openSheetHTML(h);
+}
+
+function spSheet(id) {
+  const sp = findSp(id);
+  if (!sp) return toast("見つかりませんでした");
+  const front = S.role === "front";
+  const staffAll = [...new Set(S.users.filter(u => u.active).map(u => u.name))];
+  let h = `<h3>${esc(sp.room)} 特別対応</h3>`;
+  h += `<div class="kv">${md(sp.date)} 指示：${esc(sp.createdBy || "")} ${tm(sp.createdAt)}${sp.editedBy ? `（修正：${esc(sp.editedBy)}）` : ""}</div>`;
+  if (front && !sp.done) h += `<div class="field"><label>内容</label><textarea id="shText" rows="4">${esc(sp.text)}</textarea></div>`;
+  else h += `<div class="note">${esc(sp.text)}</div>`;
+  if (sp.done) {
+    h += `<div class="kv">✓ 対応した人：${esc(sp.handler || "")}${sp.note ? `「${esc(sp.note)}」` : ""}</div>`;
+    h += `<div class="kv">報告：${esc(sp.reportedBy || "")} ${md(sp.doneDate)} ${tm(sp.doneAt)}</div>`;
+  } else if (!front) {
+    h += `<div class="field"><label>実際に対応した人（代筆の場合は書き換えてください）</label><input id="shHandler" list="staffList" value="${esc(S.staff)}"><datalist id="staffList">${staffAll.map(n => `<option value="${esc(n)}">`).join("")}</datalist></div>`;
+    h += `<div class="field"><label>一言（任意）</label><input id="shNote" placeholder="例：14時にお届け済み"></div>`;
+  }
+  h += `<div class="row"><button id="shClose">閉じる</button>`;
+  if (front && !sp.done) h += `<button id="shDel">削除</button><button id="shSave" class="primary">保存</button>`;
+  if (!front && !sp.done) h += `<button id="shDone" class="primary">完了報告</button>`;
+  h += `</div><div class="row"><button id="shLog">操作履歴を見る</button></div><div id="spLogBox"></div>`;
+  openSheetHTML(h);
+
+  const ref = doc(db, "specials", id);
+  bind("shLog", () => spLogs(id));
+  bind("shSave", () => {
+    const v = $("shText").value.trim();
+    if (!v) return toast("内容が空です（取りやめる場合は削除）");
+    if (v !== sp.text) {
+      const batch = writeBatch(db);
+      batch.update(ref, { text: v, editedBy: S.staff, editedAt: now() });
+      addLog(batch, { kind: "sp", type: "sp_edit", sid: id, room: sp.room, date: sp.date, b: { text: sp.text }, a: { text: v } });
+      track(batch.commit());
+    }
+    closeSheet();
+  });
+  bind("shDel", () => {
+    if (!confirm(`${sp.room} の特別対応を削除しますか？（操作履歴には残ります）`)) return;
+    const batch = writeBatch(db);
+    batch.delete(ref);
+    addLog(batch, { kind: "sp", type: "sp_delete", sid: id, room: sp.room, date: sp.date, b: { text: sp.text } });
+    track(batch.commit());
+    closeSheet();
+  });
+  bind("shDone", () => {
+    const handler = $("shHandler").value.trim(), note = $("shNote").value.trim();
+    if (!handler) return toast("対応した人を入力してください");
+    if (!confirm(`${sp.room} の特別対応を完了にします（対応：${handler}）。\n完了報告は取り消せません。よろしいですか？`)) return;
+    const batch = writeBatch(db);
+    batch.update(ref, { done: true, handler, note, reportedBy: S.staff, doneAt: now(), doneDate: S.today, expireAt: expireFor(S.today) });
+    addLog(batch, { kind: "sp", type: "sp_done", sid: id, room: sp.room, date: sp.date, a: { handler, note } });
+    track(batch.commit());
+    closeSheet();
+    toast(`${sp.room} の特別対応を完了報告しました`);
+  });
+}
+
+// ===== 設定 =====
+$("setBtn").onclick = openSettings;
+function openSettings() {
+  $("acctInfo").textContent = `${S.staff}（社員番号 ${S.me.empNo}・${DEPT[S.me.dept]}${S.me.admin ? "・管理者" : ""}）`;
+  $("adminSec").classList.toggle("hidden", !S.me.admin);
+  if (S.me.admin) {
+    $("roomsTa").value = floorsSorted().map(f => `${f}: ${compress(S.cfg.floors[f])}`).join("\n");
+    const total = Object.values(S.cfg.floors).reduce((a, v) => a + v.length, 0);
+    $("setInfo").textContent = `登録済み：${Object.keys(S.cfg.floors).length}フロア・${total}室`;
+    renderUsers();
+  }
+  show("settingsView");
+  window.scrollTo(0, 0);
+}
+$("setCancel").onclick = () => { show("appView"); render(); };
+$("logoutBtn").onclick = logout;
+
+// 部屋番号（管理者のみ）
+$("setSave").onclick = async () => {
+  if (!S.me.admin) return;
+  const floors = {}, errs = [];
+  $("roomsTa").value.normalize("NFKC").split("\n").forEach((line, i) => {
+    if (!line.trim()) return;
+    const m = line.match(/^\s*([^:]+?)\s*:\s*(.+)$/);
+    const bad = [];
+    if (!m) { errs.push(i + 1); return; }
+    const f = m[1].replace(/[Ff階]$/, "").trim();
+    floors[f] = [...new Set([...(floors[f] || []), ...parseRooms(m[2], bad)])];
+    if (bad.length) errs.push(i + 1);
+  });
+  if (errs.length) return toast(`${errs.join(",")}行目の書式を確認してください`);
+  const total = Object.values(floors).reduce((a, v) => a + v.length, 0);
+  if (!confirm(`${Object.keys(floors).length}フロア・${total}室で保存しますか？`)) return;
+  if (!navigator.onLine) return toast("オフラインでは設定を保存できません");
+  const batch = writeBatch(db);
+  batch.set(doc(db, "config", "hotel"), { floors, updatedAt: serverTimestamp(), updatedBy: S.staff });
+  addLog(batch, { kind: "config", type: "config", a: { floors: Object.keys(floors).length, rooms: total } });
+  if (await track(batch.commit())) toast("部屋番号を保存しました");
+};
+
+// パスワード変更（本人）
+$("pwBtn").onclick = () => {
+  openSheetHTML(`<h3>パスワード変更</h3>
+    <div class="field"><label>現在のパスワード</label><input id="pwCur" type="password" autocomplete="current-password"></div>
+    <div class="field"><label>新しいパスワード（6文字以上）</label><input id="pwNew" type="password" autocomplete="new-password"></div>
+    <div class="field"><label>新しいパスワード（確認）</label><input id="pwNew2" type="password" autocomplete="new-password"></div>
+    <div class="row"><button id="shClose">閉じる</button><button id="pwSave" class="primary">変更</button></div>`);
+  bind("pwSave", async () => {
+    const cur = $("pwCur").value, nw = $("pwNew").value;
+    if (nw.length < 6) return toast("6文字以上にしてください");
+    if (nw !== $("pwNew2").value) return toast("確認用と一致しません");
+    try {
+      const u = auth.currentUser;
+      await reauthenticateWithCredential(u, EmailAuthProvider.credential(u.email, cur));
+      await updatePassword(u, nw);
+      closeSheet(); toast("パスワードを変更しました");
+    } catch (e) { toast("変更できませんでした（" + e.code + "）"); }
+  });
+};
+
+// 社員の登録・編集（管理者のみ）
+function renderUsers() {
+  if (!S.me || !S.me.admin) return;
+  $("userList").innerHTML = S.users.length ? `<div class="list"><table><thead><tr><th>社員番号</th><th>名前</th><th>所属</th><th>状態</th></tr></thead><tbody>${S.users.map(u =>
+    `<tr data-uid="${esc(u.uid)}"><td>${esc(u.empNo)}</td><td>${esc(u.name)}${u.admin ? "<br><small>管理者</small>" : ""}</td><td>${DEPT[u.dept] || esc(u.dept)}</td><td>${u.active ? "利用中" : "<b>停止</b>"}</td></tr>`
+  ).join("")}</tbody></table></div><p class="kv">行をタップすると編集できます。</p>` : notice("社員が登録されていません。");
+}
+$("userList").onclick = e => { const tr = e.target.closest("tr[data-uid]"); if (tr) userSheet(tr.dataset.uid); };
+$("uAdd").onclick = async () => {
+  const no = normNo($("uNo").value), name = $("uName").value.trim(), dept = $("uDept").value, admin = $("uAdmin").checked, pw = $("uPw").value;
+  if (!EMP_RE.test(no)) return toast("社員番号は半角英数字（-と_も可）で入力してください");
+  if (!name) return toast("名前を入力してください");
+  if (pw.length < 6) return toast("初期パスワードは6文字以上にしてください");
+  if (S.users.some(u => u.empNo === no)) return toast("この社員番号はすでに登録されています");
+  if (!navigator.onLine) return toast("オフラインでは登録できません");
+  if (!confirm(`${name}（${no}・${DEPT[dept]}${admin ? "・管理者" : ""}）を登録しますか？`)) return;
+  const btn = $("uAdd"); btn.disabled = true;
+  try {
+    const a2 = adminAuth();
+    let uid;
+    try { uid = (await createUserWithEmailAndPassword(a2, empEmail(no), pw)).user.uid; }
+    catch (e) {
+      // 前回、ログイン用アカウントだけ作られて登録が途中で止まった場合の復旧（同じパスワードなら続きから登録できる）
+      if (e.code !== "auth/email-already-in-use") return toast("登録できませんでした（" + e.code + "）");
+      try { uid = (await signInWithEmailAndPassword(a2, empEmail(no), pw)).user.uid; }
+      catch (e2) { return toast("この社員番号のログイン用アカウントが既にあります。Firebaseコンソールで確認してください"); }
+      if (S.users.some(u => u.uid === uid)) return toast("この社員番号はすでに登録されています");
+    } finally { try { await signOut(a2); } catch (e) { /* ignore */ } }
+    const batch = writeBatch(db);
+    batch.set(doc(db, "users", uid), { empNo: no, name, dept, admin, active: true, createdAt: serverTimestamp(), createdBy: S.me.uid });
+    addLog(batch, { kind: "user", type: "user_add", target: uid, a: { empNo: no, name, dept, admin } });
+    if (await track(batch.commit())) {
+      toast(`${name} を登録しました。社員番号と初期パスワードを本人に伝えてください`);
+      ["uNo", "uName", "uPw"].forEach(i => { $(i).value = ""; }); $("uAdmin").checked = false;
+    }
+  } finally { btn.disabled = false; }
+};
+function userSheet(uid) {
+  const u = S.users.find(x => x.uid === uid); if (!u) return;
+  const self = uid === S.me.uid;
+  openSheetHTML(`<h3>社員の編集</h3><div class="kv">社員番号 ${esc(u.empNo)}（変更不可）</div>
+    <div class="field"><label>名前</label><input id="eName" value="${esc(u.name)}"></div>
+    <div class="field"><label>所属</label><select id="eDept"><option value="front" ${u.dept === "front" ? "selected" : ""}>フロント</option><option value="hk" ${u.dept === "hk" ? "selected" : ""}>管理課</option></select></div>
+    <label class="chk"><input type="checkbox" id="eAdmin" ${u.admin ? "checked" : ""} ${self ? "disabled" : ""}> 管理者</label>
+    <label class="chk"><input type="checkbox" id="eActive" ${u.active ? "checked" : ""} ${self ? "disabled" : ""}> 利用中（外すと、その時点からアクセスできなくなります）</label>
+    ${self ? `<p class="kv">自分の管理者権限と利用状態は変更できません。</p>` : ""}
+    <p class="kv">パスワードの再設定は Firebase コンソールの Authentication で行います（ログインID：${esc(empEmail(u.empNo))}）。</p>
+    <div class="row"><button id="shClose">閉じる</button><button id="eSave" class="primary">保存</button></div>`);
+  bind("eSave", async () => {
+    const name = $("eName").value.trim(), dept = $("eDept").value;
+    const admin = self ? true : $("eAdmin").checked, active = self ? true : $("eActive").checked;
+    if (!name) return toast("名前を入力してください");
+    if (!active && u.active && !confirm(`${u.name} を利用停止にしますか？`)) return;
+    const batch = writeBatch(db);
+    batch.update(doc(db, "users", uid), { name, dept, admin, active, updatedAt: serverTimestamp(), updatedBy: S.me.uid });
+    addLog(batch, { kind: "user", type: "user_update", target: uid, b: { name: u.name, dept: u.dept, admin: !!u.admin, active: !!u.active }, a: { name, dept, admin, active } });
+    if (await track(batch.commit())) { closeSheet(); toast("保存しました"); }
+  });
+}
+</script>
+</body>
+</html>

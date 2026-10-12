@@ -1,0 +1,61 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ===== 共通 =====
+    // 管理者が登録した社員（users/{uid}）で、利用中（active）の人だけが使える。
+    // Firebase Authentication でアカウントを勝手に作っても、users に登録がなければ何も読み書きできない。
+    function signedIn() { return request.auth != null; }
+    function userPath() { return /databases/$(database)/documents/users/$(request.auth.uid); }
+    function isStaff() { return signedIn() && exists(userPath()) && get(userPath()).data.active == true; }
+    function isAdmin() { return isStaff() && get(userPath()).data.admin == true; }
+    function canFront() { return isStaff() && (get(userPath()).data.dept == 'front' || get(userPath()).data.admin == true); }
+    function validUser(d) {
+      return d.keys().hasOnly(['empNo', 'name', 'dept', 'admin', 'active', 'createdAt', 'createdBy', 'updatedAt', 'updatedBy'])
+        && d.empNo is string && d.name is string && d.name.size() > 0
+        && d.dept in ['front', 'hk'] && d.admin is bool && d.active is bool;
+    }
+
+    // ===== 社員 =====
+    match /users/{uid} {
+      // 本人は自分の登録状態を確認できる（未登録・停止中の表示のため）
+      allow read: if isStaff() || (signedIn() && request.auth.uid == uid);
+      allow create: if isAdmin() && validUser(request.resource.data);
+      // 社員番号は変更不可。自分自身の管理者権限・利用状態は外せない
+      allow update: if isAdmin() && validUser(request.resource.data)
+        && request.resource.data.empNo == resource.data.empNo
+        && (uid != request.auth.uid || (request.resource.data.admin == true && request.resource.data.active == true));
+      allow delete: if false;
+    }
+
+    // ===== 設定（部屋番号） =====
+    match /config/{id} {
+      allow read: if isStaff();
+      allow write: if isAdmin();
+    }
+
+    // ===== 日別の清掃データ（1日・1フロア＝1ドキュメント） =====
+    match /days/{date}/floors/{floor} {
+      allow read, write: if isStaff();
+    }
+
+    // ===== 特別対応 =====
+    match /specials/{id} {
+      allow read: if isStaff();
+      allow create: if canFront() && request.resource.data.done == false;
+      // 完了報告済みのものは変更できない（完了取消なし）
+      allow update: if isStaff() && resource.data.done == false;
+      allow delete: if canFront() && resource.data.done == false;
+    }
+
+    // ===== 操作履歴（追加のみ。変更・削除はできない） =====
+    match /logs/{id} {
+      allow read: if isStaff();
+      // 操作した人の欄には、ログインしている本人のIDしか入れられない。時刻はサーバーの時刻のみ
+      allow create: if isStaff()
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.at == request.time;
+      allow update, delete: if false;
+    }
+  }
+}
