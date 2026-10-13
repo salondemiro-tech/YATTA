@@ -89,6 +89,10 @@ h3.sec{font-size:15px;margin:18px 12px 6px}
 .note{white-space:pre-wrap;background:#fff7e6;border-radius:8px;padding:10px;margin:8px 0}
 #toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#111;color:#fff;padding:10px 16px;border-radius:999px;font-size:14px;opacity:0;transition:opacity .2s;z-index:30;pointer-events:none;max-width:90vw}
 #toast.show{opacity:1}
+.dlg-bg{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:40;display:flex;align-items:center;justify-content:center;padding:16px}
+.dlg{background:#fff;border-radius:14px;padding:18px;max-width:420px;width:100%}
+#dlgMsg{white-space:pre-wrap;margin:0 0 14px;font-size:15px;line-height:1.6}
+.dlg .row{display:flex;gap:8px}.dlg .row button{flex:1;padding:12px}
 .sh{font-size:16px;margin:24px 0 8px;padding-top:12px;border-top:1px solid var(--line)}
 .card0{background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px;margin:8px 0}
 .chk{display:flex;align-items:center;gap:8px;margin:10px 0;font-size:14px}
@@ -192,6 +196,7 @@ h3.sec{font-size:15px;margin:18px 12px 6px}
 </div>
 
 <div id="sheetBg" class="sheet-bg hidden"><div class="sheet" id="sheet"></div></div>
+<div id="dlgBg" class="dlg-bg hidden"><div class="dlg"><p id="dlgMsg"></p><div class="row"><button id="dlgCancel">キャンセル</button><button id="dlgOk" class="primary">OK</button></div></div></div>
 <div id="toast"></div>
 
 <script type="module">
@@ -262,6 +267,17 @@ const S = {
 
 let toastTimer;
 function toast(m) { const t = $("toast"); t.textContent = m; t.classList.add("show"); clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove("show"), 2600); }
+// 確認ダイアログ（ブラウザ標準の confirm は「ダイアログを表示しない」を押すと以後すべて自動でキャンセルされるため使わない）
+function uiConfirm(msg, okOnly) {
+  return new Promise(res => {
+    $("dlgMsg").textContent = msg;
+    $("dlgCancel").classList.toggle("hidden", !!okOnly);
+    $("dlgBg").classList.remove("hidden");
+    const done = v => { $("dlgBg").classList.add("hidden"); $("dlgOk").onclick = $("dlgCancel").onclick = null; res(v); };
+    $("dlgOk").onclick = () => done(true);
+    $("dlgCancel").onclick = () => done(false);
+  });
+}
 function show(id) { ["loginView", "appView", "settingsView"].forEach(v => $(v).classList.toggle("hidden", v !== id)); }
 
 // ===== 部屋番号 =====
@@ -355,7 +371,7 @@ function syncUI() {
   el.className = "sync " + cls; el.textContent = txt;
 }
 $("syncBadge").onclick = () => {
-  if (S.sync.err) { alert(`保存に失敗した操作があります（${S.sync.err}）。\n画面の状態を確認し、必要なら入力し直してください。`); S.sync.err = null; syncUI(); }
+  if (S.sync.err) { uiConfirm(`保存に失敗した操作があります（${S.sync.err}）。\n画面の状態を確認し、必要なら入力し直してください。`, true); S.sync.err = null; syncUI(); }
   else toast($("syncBadge").textContent);
 };
 window.addEventListener("online", syncUI);
@@ -426,8 +442,8 @@ function cleanup() {
 }
 // ログアウト時は端末内のキャッシュも消す（共用・紛失時の対策）
 async function logout() {
-  if (hasPending() && !confirm("まだ送信されていない操作があります。ログアウトすると失われます。ログアウトしますか？")) return;
-  if (!hasPending() && !confirm("ログアウトしますか？")) return;
+  if (hasPending() && !(await uiConfirm("まだ送信されていない操作があります。ログアウトすると失われます。ログアウトしますか？"))) return;
+  if (!hasPending() && !(await uiConfirm("ログアウトしますか？"))) return;
   try { await signOut(auth); } catch (e) { /* ignore */ }
   try { await terminate(db); await clearIndexedDbPersistence(db); } catch (e) { /* ignore */ }
   try { localStorage.removeItem("yatta_view"); } catch (e) { /* ignore */ }
@@ -645,12 +661,12 @@ $("schedBoard").onclick = e => {
   if (e.target.closest("[data-band]")) return roomSheet(t.dataset.f, t.dataset.r, S.target);
   paint(t.dataset.f, t.dataset.r);
 };
-function paint(f, r) {
+async function paint(f, r) {
   const d = S.target, x = st(f, r, d), cur = curPen(x);
   let ns;
   if (x.doneBy) {
     // 完了済みの部屋も変更できる。完了していた記録は操作履歴に残る
-    if (!confirm(`${r} は管理課が完了済みです（完了：${x.doneBy}）。\n変更すると完了表示は消えます（完了した記録は操作履歴に残ります）。よろしいですか？`)) return;
+    if (!(await uiConfirm(`${r} は管理課が完了済みです（完了：${x.doneBy}）。\n変更すると完了表示は消えます（完了した記録は操作履歴に残ります）。よろしいですか？`))) return;
     ns = S.pen === "erase" ? null : S.pen;
   } else {
     ns = (S.pen === "erase" || S.pen === cur) ? null : S.pen;
@@ -658,7 +674,7 @@ function paint(f, r) {
   if (!ns && !x.s) return;
   writeRooms(d, "set", [roomItem(f, r, ns)]);
 }
-function bulkFloor(f) {
+async function bulkFloor(f) {
   const d = S.target, rooms = S.cfg.floors[f] || [], items = [];
   if (S.pen === "erase") rooms.forEach(r => { const x = st(f, r, d); if (x.s && !x.doneBy) items.push(roomItem(f, r, null)); });
   else rooms.forEach(r => { if (!st(f, r, d).s) items.push(roomItem(f, r, S.pen)); });
@@ -666,11 +682,11 @@ function bulkFloor(f) {
   const msg = S.pen === "erase"
     ? `${md(d)} ${f}F の未完了 ${items.length}室の入力を消しますか？`
     : `${md(d)} ${f}F の未入力 ${items.length}室を「${PEN_NAME[S.pen]}」にしますか？`;
-  if (!confirm(msg)) return;
+  if (!(await uiConfirm(msg))) return;
   writeRooms(d, "floor", items);
 }
 // まとめ塗り：反映前に対象室数・未登録の番号・読み取れない指定を確認表示する
-$("rangeBtn").onclick = () => {
+$("rangeBtn").onclick = async () => {
   const d = S.target, items = [], unknown = [], bad = []; let skipped = 0;
   const ns = S.pen === "erase" ? null : S.pen;
   const list = parseRooms($("rangeIn").value, bad);
@@ -687,8 +703,8 @@ $("rangeBtn").onclick = () => {
   if (skipped) msg += `\n完了済みの${skipped}室は変更しません。`;
   if (unknown.length) msg += `\n未登録の番号（反映しません）：${unknown.slice(0, 10).join(", ")}${unknown.length > 10 ? ` ほか${unknown.length - 10}件` : ""}`;
   if (bad.length) msg += `\n読み取れない指定（反映しません）：${bad.join(", ")}`;
-  if (!items.length) return alert(msg + "\n\n変更する部屋はありません。");
-  if (!confirm(msg + "\n\nよろしいですか？")) return;
+  if (!items.length) return uiConfirm(msg + "\n\n変更する部屋はありません。", true);
+  if (!(await uiConfirm(msg + "\n\nよろしいですか？"))) return;
   writeRooms(d, "range", items);
   $("rangeIn").value = "";
 };
@@ -724,7 +740,7 @@ $("draftBtn").onclick = async () => {
     catch (e) { return toast("サーバーから読み込めませんでした。通信を確認してください（" + (e.code || e) + "）"); }
     const p = draftPlan(cur, prev);
     if (!p.c.red && !p.c.green && !p.c.yco) return toast("下書きできる部屋はありません（前日が未入力、または入力済み）");
-    if (!confirm(`${md(D)} の日程表を ${md(ds[0])} から下書きします。\n赤（4日目の清掃）${p.c.red}室／赤 C/O（前日が黄）${p.c.yco}室／緑 ${p.c.green}室\n前日C/Oの${p.c.co}室は灰（未入力）のままです。\n入力済みの部屋は変更しません。`)) return;
+    if (!(await uiConfirm(`${md(D)} の日程表を ${md(ds[0])} から下書きします。\n赤（4日目の清掃）${p.c.red}室／赤 C/O（前日が黄）${p.c.yco}室／緑 ${p.c.green}室\n前日C/Oの${p.c.co}室は灰（未入力）のままです。\n入力済みの部屋は変更しません。`))) return;
     // 確認している間に他の端末で入力された部屋を除くため、もう一度サーバーから読み直す
     try { cur = await serverDay(D); }
     catch (e) { return toast("サーバーから読み込めませんでした。もう一度実行してください（" + (e.code || e) + "）"); }
@@ -779,7 +795,7 @@ function renderBoard() {
   }).join("");
   $("boardGrid").innerHTML = html || notice("未完了の部屋はありません。");
 }
-$("boardGrid").onclick = e => {
+$("boardGrid").onclick = async e => {
   if (rollDay()) return toast("日付が変わったため、今日の表示に切り替えました");
   const t = e.target.closest(".tile"); if (!t) return;
   const f = t.dataset.f, r = t.dataset.r;
@@ -790,7 +806,7 @@ $("boardGrid").onclick = e => {
     return toast(x.s ? `${r} は今日は清掃不要です（未清掃）` : `${r} は清掃の指示がありません`);
   }
   if (x.doneBy) {
-    if (!confirm(`${r} の完了を取り消しますか？\n（完了者：${x.doneBy}）`)) return;
+    if (!(await uiConfirm(`${r} の完了を取り消しますか？\n（完了者：${x.doneBy}）`))) return;
     writeRooms(S.today, "undo", [{ f, r, data: { doneBy: deleteField(), doneAt: deleteField() }, a: { ...snapState(x), done: null } }]);
   } else {
     writeRooms(S.today, "done", [{ f, r, data: { doneBy: S.staff, doneAt: now() }, a: { ...snapState(x), done: S.staff } }]);
@@ -882,7 +898,7 @@ async function roomLogSheet(d, r) {
     });
     openSheetHTML(`<h3>${esc(r)} の操作履歴</h3><div class="kv">${md(d)}・${list.length}件</div>${lines.length ? `<ul class="loglist">${lines.join("")}</ul>` : `<p class="kv">この日の操作はありません</p>`}<div class="row"><button id="shClose">閉じる</button></div>`);
   } catch (e) {
-    openSheetHTML(`<h3>${esc(r)} の操作履歴</h3><p class="kv">読み込めませんでした（${esc(e.code || e)}）</p><div class="row"><button id="shClose">閉じる</button></div>`);
+    openSheetHTML(`<h3>${esc(r)} の操作履歴</h3><p class="kv">読み込めませんでした（${esc(e.code || e)}）<br>${esc(e.message || "")}</p><div class="row"><button id="shClose">閉じる</button></div>`);
   }
 }
 async function spLogs(id) {
@@ -898,7 +914,7 @@ async function spLogs(id) {
       else if (l.type === "sp_add") t = `「${esc(l.a && l.a.text)}」`;
       return `<li><b>${md(l.date)} ${l.at ? tm(l.at) : ""}</b> ${esc(l.name)}［${LOG_TYPE[l.type] || esc(l.type)}］<br>${t}</li>`;
     }).join("")}</ul>` : `<p class="kv">操作履歴はありません</p>`;
-  } catch (e) { box.innerHTML = `<p class="kv">読み込めませんでした（${esc(e.code || e)}）</p>`; }
+  } catch (e) { box.innerHTML = `<p class="kv" style="word-break:break-all">読み込めませんでした（${esc(e.code || e)}）<br>${esc(e.message || "")}</p>`; }
 }
 
 // ===== シート =====
@@ -951,18 +967,18 @@ function spSheet(id) {
     }
     closeSheet();
   });
-  bind("shDel", () => {
-    if (!confirm(`${sp.room} の特別対応を削除しますか？（操作履歴には残ります）`)) return;
+  bind("shDel", async () => {
+    if (!(await uiConfirm(`${sp.room} の特別対応を削除しますか？（操作履歴には残ります）`))) return;
     const batch = writeBatch(db);
     batch.delete(ref);
     addLog(batch, { kind: "sp", type: "sp_delete", sid: id, room: sp.room, date: sp.date, b: { text: sp.text } });
     track(batch.commit());
     closeSheet();
   });
-  bind("shDone", () => {
+  bind("shDone", async () => {
     const handler = $("shHandler").value.trim(), note = $("shNote").value.trim();
     if (!handler) return toast("対応した人を入力してください");
-    if (!confirm(`${sp.room} の特別対応を完了にします（対応：${handler}）。\n完了報告は取り消せません。よろしいですか？`)) return;
+    if (!(await uiConfirm(`${sp.room} の特別対応を完了にします（対応：${handler}）。\n完了報告は取り消せません。よろしいですか？`))) return;
     const batch = writeBatch(db);
     batch.update(ref, { done: true, handler, note, reportedBy: S.staff, doneAt: now(), doneDate: S.today, expireAt: expireFor(S.today) });
     addLog(batch, { kind: "sp", type: "sp_done", sid: id, room: sp.room, date: sp.date, a: { handler, note } });
@@ -1029,7 +1045,7 @@ $("setSave").onclick = async () => {
   if (unknown.length) return toast(`部屋タイプに未登録の部屋があります：${unknown.slice(0, 5).join(", ")}`);
   if (dup.length) return toast(`2つのタイプに入っている部屋があります：${dup.slice(0, 5).join(", ")}`);
   const typed = Object.keys(types).length;
-  if (!confirm(`${Object.keys(floors).length}フロア・${total}室（タイプ設定 ${typed}室）で保存しますか？`)) return;
+  if (!(await uiConfirm(`${Object.keys(floors).length}フロア・${total}室（タイプ設定 ${typed}室）で保存しますか？`))) return;
   if (!navigator.onLine) return toast("オフラインでは設定を保存できません");
   const batch = writeBatch(db);
   batch.set(doc(db, "config", "hotel"), { floors, types, updatedAt: serverTimestamp(), updatedBy: S.staff });
@@ -1072,7 +1088,7 @@ $("uAdd").onclick = async () => {
   if (pw.length < 6) return toast("初期パスワードは6文字以上にしてください");
   if (S.users.some(u => u.empNo === no)) return toast("この社員番号はすでに登録されています");
   if (!navigator.onLine) return toast("オフラインでは登録できません");
-  if (!confirm(`${name}（${no}・${DEPT[dept]}${admin ? "・管理者" : ""}）を登録しますか？`)) return;
+  if (!(await uiConfirm(`${name}（${no}・${DEPT[dept]}${admin ? "・管理者" : ""}）を登録しますか？`))) return;
   const btn = $("uAdd"); btn.disabled = true;
   try {
     const a2 = adminAuth();
@@ -1109,7 +1125,7 @@ function userSheet(uid) {
     const name = $("eName").value.trim(), dept = $("eDept").value;
     const admin = self ? true : $("eAdmin").checked, active = self ? true : $("eActive").checked;
     if (!name) return toast("名前を入力してください");
-    if (!active && u.active && !confirm(`${u.name} を利用停止にしますか？`)) return;
+    if (!active && u.active && !(await uiConfirm(`${u.name} を利用停止にしますか？`))) return;
     const batch = writeBatch(db);
     batch.update(doc(db, "users", uid), { name, dept, admin, active, updatedAt: serverTimestamp(), updatedBy: S.me.uid });
     addLog(batch, { kind: "user", type: "user_update", target: uid, b: { name: u.name, dept: u.dept, admin: !!u.admin, active: !!u.active }, a: { name, dept, admin, active } });
