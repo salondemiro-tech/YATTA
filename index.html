@@ -108,9 +108,10 @@ h3.sec{font-size:15px;margin:18px 12px 6px}
 
 <div id="loginView" class="screen hidden">
   <h1>清掃管理システム YATTA</h1>
-  <div class="field"><label>社員番号<span class="my">ဝန်ထမ်းနံပါတ်</span></label><input id="empNo" inputmode="text" autocomplete="username" autocapitalize="off"></div>
-  <div class="field"><label>パスワード<span class="my">စကားဝှက်</span></label><input id="password" type="password" autocomplete="current-password"></div>
-  <button id="loginBtn" class="primary">ログイン<span class="my">ဝင်ရန်</span></button>
+  <div class="btnrow" style="justify-content:flex-end"><button id="loginLang">မြန်မာ</button></div>
+  <div class="field"><label id="lblEmp">社員番号</label><input id="empNo" inputmode="text" autocomplete="username" autocapitalize="off"></div>
+  <div class="field"><label id="lblPw">パスワード</label><input id="password" type="password" autocomplete="current-password"></div>
+  <button id="loginBtn" class="primary">ログイン</button>
   <p id="loginErr" class="kv"></p>
   <p class="kv">アカウントは管理者が登録します。パスワードを忘れた場合は管理者に連絡してください。</p>
 </div>
@@ -120,6 +121,7 @@ h3.sec{font-size:15px;margin:18px 12px 6px}
     <button id="homeBtn">トップ</button>
     <div class="who"><b id="viewTitle"></b><br><span id="who"></span></div>
     <button id="syncBadge" class="sync ok">同期済み</button>
+    <button id="langBtn" class="hidden">မြန်မာ</button>
     <button id="switchBtn" class="hidden">表示切替</button>
     <button id="setBtn">⚙</button>
   </header>
@@ -288,16 +290,16 @@ const MY = {
 };
 const BOARD_LEGEND = "赤：要清掃／緑：清掃なし（タオル補充）→ 終わったらタップで白。黄：未清掃・今日は清掃不要。オレンジ帯：特別対応あり（帯をタップで内容）";
 const HIST_LEGEND = "H赤：要清掃／緑：清掃なし（タオル補充）→ 終わったらタップで白。黄：未清掃・今日は清掃不要。オレンジ帯：特別対応あり（帯をタップで内容）";
-const isMy = () => S.role === "hk";
-const my = ja => (isMy() && MY[ja]) ? MY[ja] : "";
-const myS = ja => my(ja) ? `<span class="my">${my(ja)}</span>` : "";   // 下に小さく
-const bi = ja => ja + myS(ja);                                        // 日本語＋下にミャンマー語（HTML用）
-const bl = ja => my(ja) ? `${ja} / ${my(ja)}` : ja;                   // 1行で並べる（文字列用）
+// 管理課の画面で「မြန်မာ」を選ぶと、日本語をミャンマー語に置き換えて表示（選択は端末ごとに記憶）
+const isMy = () => S.role === "hk" && S.lang === "my";
+const tr = ja => (isMy() && MY[ja]) ? MY[ja] : ja;
+const bi = tr, bl = tr;
+const cnt = (ja, n, jaText) => isMy() && MY[ja] ? `${MY[ja]} (${n})` : jaText;
 const ROOM_TYPES = ["S", "D", "T", "TR"];
 const VIEWS = { home: "トップ", sched: "清掃日程表", spin: "特別対応指示表", board: "清掃ボード", report: "特別対応完了報告", hist: "履歴" };
 const DEPT = { front: "フロント", hk: "管理課" };
 const S = {
-  me: null, role: null, staff: "",
+  me: null, role: null, staff: "", lang: lsGet("yatta_lang") === "my" ? "my" : "ja",
   today: T(), tomorrow: T1(), target: null,
   cfg: { floors: {}, types: {} }, roomFloor: {}, users: [],
   days: {}, open: [], openByRoom: {}, doneToday: [],
@@ -376,12 +378,12 @@ function stateData(pen) {
 }
 function stateLabel(x) {
   if (!x.s) return bi("未入力");
-  if (x.s === "yellow") return `未清掃・清掃不要${x.setBy ? `（指示：${esc(x.setBy)} ${tm(x.setAt)}）` : ""}${myS("未清掃・清掃不要")}`;
+  if (x.s === "yellow") return `${tr("未清掃・清掃不要")}${x.setBy ? `（${tr("指示")}：${esc(x.setBy)} ${tm(x.setAt)}）` : ""}`;
   const base = x.s === "red" ? "要清掃" : "清掃なし（タオル補充）";
   let t = x.s === "red" ? (x.co && S.role === "front" ? "要清掃（C/O）" : "要清掃") : base;
   if (x.setBy) t += `（指示：${esc(x.setBy)} ${tm(x.setAt)}）`;
   t += x.doneBy ? ` → 完了：${esc(x.doneBy)} ${tm(x.doneAt)}` : " → 未完了";
-  if (isMy()) t += `<span class="my">${MY[base]} → ${x.doneBy ? MY["完了"] : MY["未完了"]}</span>`;
+  if (isMy()) return `${MY[base]}${x.setBy ? `（${MY["指示"]}：${esc(x.setBy)} ${tm(x.setAt)}）` : ""} → ${x.doneBy ? `${MY["完了"]}：${esc(x.doneBy)} ${tm(x.doneAt)}` : MY["未完了"]}`;
   return t;
 }
 // 操作履歴に残す部屋の状態（変更前・変更後）
@@ -414,7 +416,7 @@ function syncUI() {
   else if (pend) { cls = "busy"; txt = "同期中" + n; }
   else { cls = "ok"; txt = "同期済み" + (S.sync.last ? " " + hm(S.sync.last) : ""); }
   const k = cls === "err" ? "同期エラー" : !navigator.onLine ? (pend ? "未送信" : "オフライン") : cache ? "接続中…" : pend ? "同期中" : "同期済み";
-  el.className = "sync " + cls; el.textContent = my(k) ? `${txt} / ${my(k)}` : txt;
+  el.className = "sync " + cls; el.textContent = isMy() ? MY[k] + (cls === "ok" && S.sync.last ? " " + hm(S.sync.last) : "") : txt;
 }
 $("syncBadge").onclick = () => {
   if (S.sync.err) { uiConfirm(`保存に失敗した操作があります（${S.sync.err}）。\n画面の状態を確認し、必要なら入力し直してください。`, true); S.sync.err = null; syncUI(); }
@@ -489,7 +491,7 @@ function cleanup() {
 // ログアウト時は端末内のキャッシュも消す（共用・紛失時の対策）
 async function logout() {
   if (hasPending() && !(await uiConfirm("まだ送信されていない操作があります。ログアウトすると失われます。ログアウトしますか？"))) return;
-  if (!hasPending() && !(await uiConfirm(my("ログアウトしますか？") ? "ログアウトしますか？\n" + my("ログアウトしますか？") : "ログアウトしますか？"))) return;
+  if (!hasPending() && !(await uiConfirm(tr("ログアウトしますか？")))) return;
   try { await signOut(auth); } catch (e) { /* ignore */ }
   try { await terminate(db); await clearIndexedDbPersistence(db); } catch (e) { /* ignore */ }
   try { localStorage.removeItem("yatta_view"); } catch (e) { /* ignore */ }
@@ -568,6 +570,8 @@ function updateWho() {
   $("homeBtn").innerHTML = bi("トップ");
   syncUI();
   $("switchBtn").classList.toggle("hidden", !S.me.admin);
+  $("langBtn").classList.toggle("hidden", S.role !== "hk");
+  $("langBtn").textContent = S.lang === "my" ? "日本語" : "မြန်မာ";
 }
 function startApp() {
   show("appView");
@@ -575,6 +579,18 @@ function startApp() {
   setDateRange();
   go("home");
 }
+// 言語の切り替え（管理課の画面とログイン画面）。端末ごとに記憶する
+function setLang(l) { S.lang = l; lsSet("yatta_lang", l); applyLoginLang(); }
+function applyLoginLang() {
+  const m = S.lang === "my";
+  $("loginLang").textContent = m ? "日本語" : "မြန်မာ";
+  $("lblEmp").textContent = m ? "ဝန်ထမ်းနံပါတ်" : "社員番号";
+  $("lblPw").textContent = m ? "စကားဝှက်" : "パスワード";
+  $("loginBtn").textContent = m ? "ဝင်ရန်" : "ログイン";
+}
+applyLoginLang();
+$("loginLang").onclick = () => setLang(S.lang === "my" ? "ja" : "my");
+$("langBtn").onclick = () => { setLang(S.lang === "my" ? "ja" : "my"); updateWho(); go(S.view); };
 // 管理者だけ、フロント／管理課の表示を切り替えられる
 $("switchBtn").onclick = () => {
   if (!S.me || !S.me.admin) return;
@@ -643,7 +659,7 @@ function tileHTML(f, r, d = S.today) {
   const cls = !x.s ? "none" : (x.doneBy ? `done b-${x.s}` : x.s);
   const co = S.role === "front" && x.s === "red" && x.co ? `<span class="co">C/O</span>` : "";
   const ty = S.cfg.types[r] ? `<span class="ty">${esc(S.cfg.types[r])}</span>` : "";
-  return `<div class="tile ${cls}" data-f="${esc(f)}" data-r="${esc(r)}">${n ? `<span class="spband" data-band="1">特別対応${n > 1 ? " ×" + n : ""}</span>` : ""}<span class="no">${esc(r)}</span><span class="by">${x.doneBy ? esc(x.doneBy) : ""}</span>${ty}${co}</div>`;
+  return `<div class="tile ${cls}" data-f="${esc(f)}" data-r="${esc(r)}">${n ? `<span class="spband" data-band="1">${tr("特別対応")}${n > 1 ? " ×" + n : ""}</span>` : ""}<span class="no">${esc(r)}</span><span class="by">${x.doneBy ? esc(x.doneBy) : ""}</span>${ty}${co}</div>`;
 }
 function spCardHTML(sp, btn) {
   const carried = !sp.done && sp.date < S.today;
@@ -671,14 +687,14 @@ function renderHome() {
     ? [["sched", "清掃日程表", "部屋ごとに 要清掃（赤）／清掃なし（緑）を入力"], ["spin", "特別対応指示表", "特別な対応の内容を入力"], ["hist", "履歴", "過去30日の記録"]]
     : [["board", "清掃ボード", "清掃・タオル補充が終わったらタップ"], ["report", "特別対応完了報告", "対応した人を記入して完了"], ["hist", "履歴", "過去30日の記録"]];
   const all = floorsSorted();
-  let h = `<div class="pad"><div class="kv">今日 ${md(S.today)} の状況${myS("今日の状況")}</div></div>`;
+  let h = `<div class="pad"><div class="kv">${isMy() ? `${md(S.today)} ${MY["今日の状況"]}` : `今日 ${md(S.today)} の状況`}</div></div>`;
   h += `<div class="summary">${sumHTML(counts(dayOf(S.today), all))}</div>`;
   if (S.role === "front") {
     const c = counts(dayOf(S.tomorrow), all);
     h += `<div class="pad"><div class="kv">明日 ${md(S.tomorrow)} の日程表：入力済み ${c.red + c.green + c.yellow}室／未入力 ${c.none}室</div></div>`;
   }
   h += `<div class="pad"><div class="navgrid">${nav.map(([v, t, d]) => `<button data-go="${v}"><b>${bi(t)}</b><span>${bi(d)}</span></button>`).join("")}</div></div>`;
-  h += `<h3 class="sec"><i class="dot orange"></i>未完了の特別対応（${S.open.length}件）${myS("未完了の特別対応")}</h3>`;
+  h += `<h3 class="sec"><i class="dot orange"></i>${cnt("未完了の特別対応", S.open.length, `未完了の特別対応（${S.open.length}件）`)}</h3>`;
   h += S.open.length ? S.open.map(sp => spCardHTML(sp, S.role === "hk" ? "完了報告" : "")).join("") : notice(bi("未完了の特別対応はありません。"));
   if (!all.length) h = notice(S.me.admin ? "部屋が未登録です。⚙ 設定から部屋番号を登録してください。" : "部屋が未登録です。管理者に登録を依頼してください。") + h;
   $("homeBody").innerHTML = h;
@@ -832,7 +848,7 @@ $("spinList").onclick = spClick;
 
 // ===== 管理課：清掃ボード =====
 function renderBoard() {
-  $("boardLegend").innerHTML = BOARD_LEGEND + (isMy() ? `<span class="my">${MY.LEGEND}</span>` : "");
+  $("boardLegend").textContent = isMy() ? MY.LEGEND : BOARD_LEGEND;
   const fs = visibleFloors();
   $("boardSum").innerHTML = sumHTML(counts(dayOf(S.today), fs)) + spCountHTML();
   $("boardFloors").innerHTML = floorBarHTML(true);
@@ -852,10 +868,11 @@ $("boardGrid").onclick = async e => {
   const x = st(f, r);
   if (!x.s || x.s === "yellow") {
     if ((S.openByRoom[r] || []).length) return roomSheet(f, r);
-    return toast(x.s ? `${r} は今日は清掃不要です（未清掃）${my("今日は清掃不要です") ? " / " + my("今日は清掃不要です") : ""}` : `${r} は清掃の指示がありません${my("清掃の指示がありません") ? " / " + my("清掃の指示がありません") : ""}`);
+    if (isMy()) return toast(`${r}: ${MY[x.s ? "今日は清掃不要です" : "清掃の指示がありません"]}`);
+    return toast(x.s ? `${r} は今日は清掃不要です（未清掃）` : `${r} は清掃の指示がありません`);
   }
   if (x.doneBy) {
-    if (!(await uiConfirm(`${r} の完了を取り消しますか？\n（完了者：${x.doneBy}）` + (isMy() ? `\n\n${r} ${MY["完了を取り消しますか？"]}\n（${MY["完了者"]}：${x.doneBy}）` : "")))) return;
+    if (!(await uiConfirm(isMy() ? `${r} ${MY["完了を取り消しますか？"]}\n（${MY["完了者"]}：${x.doneBy}）` : `${r} の完了を取り消しますか？\n（完了者：${x.doneBy}）`))) return;
     writeRooms(S.today, "undo", [{ f, r, data: { doneBy: deleteField(), doneAt: deleteField() }, a: { ...snapState(x), done: null } }]);
   } else {
     writeRooms(S.today, "done", [{ f, r, data: { doneBy: S.staff, doneAt: now() }, a: { ...snapState(x), done: S.staff } }]);
@@ -864,9 +881,9 @@ $("boardGrid").onclick = async e => {
 
 // ===== 管理課：特別対応完了報告 =====
 function renderReport() {
-  let h = `<h3 class="sec"><i class="dot orange"></i>未完了（持ち越し含む ${S.open.length}件）${myS("未完了（持ち越し含む）")}</h3>`;
+  let h = `<h3 class="sec"><i class="dot orange"></i>${cnt("未完了（持ち越し含む）", S.open.length, `未完了（持ち越し含む ${S.open.length}件）`)}</h3>`;
   h += S.open.length ? S.open.map(sp => spCardHTML(sp, "完了報告")).join("") : notice(bi("未完了の特別対応はありません。"));
-  h += `<h3 class="sec">今日完了（${S.doneToday.length}件）${myS("今日完了")}</h3>`;
+  h += `<h3 class="sec">${cnt("今日完了", S.doneToday.length, `今日完了（${S.doneToday.length}件）`)}</h3>`;
   h += S.doneToday.length ? S.doneToday.map(sp => spCardHTML(sp, "")).join("") : notice(bi("まだありません。"));
   $("reportList").innerHTML = h;
 }
@@ -896,7 +913,7 @@ async function loadHist() {
   render();
 }
 function renderHist() {
-  $("histLegend").innerHTML = HIST_LEGEND + (isMy() ? `<span class="my">${MY.HLEGEND}</span>` : "");
+  $("histLegend").textContent = isMy() ? MY.HLEGEND : HIST_LEGEND;
   $("histRoomBtn").textContent = bl("操作履歴");
   $("histFloors").innerHTML = floorBarHTML(false);
   if (S.hist.loading) { $("histSum").innerHTML = ""; $("histBody").innerHTML = notice(bi("読み込み中…")); return; }
@@ -910,7 +927,7 @@ function renderHist() {
   for (const f of fs) for (const r of S.cfg.floors[f]) {
     const x = (day[f] && day[f][r]) || {}, list = byRoom[r] || [];
     if (!x.s && !list.length) continue;
-    const c = x.s === "yellow" ? `<i class="dot yellow"></i>${bi("未清掃・清掃不要")}` : x.s ? `<i class="dot ${x.s}"></i>${x.s === "red" ? (x.co ? "要清掃（C/O）" + myS("要清掃") : bi("要清掃")) : bi("清掃なし")}${x.doneBy ? `✓ ${esc(x.doneBy)} ${tm(x.doneAt)}` : bi("未完了")}` : "";
+    const c = x.s === "yellow" ? `<i class="dot yellow"></i>${bi("未清掃・清掃不要")}` : x.s ? `<i class="dot ${x.s}"></i>${x.s === "red" ? (x.co ? (isMy() ? MY["要清掃"] + " (C/O)" : "要清掃（C/O）") : bi("要清掃")) : bi("清掃なし")}${x.doneBy ? `✓ ${esc(x.doneBy)} ${tm(x.doneAt)}` : bi("未完了")}` : "";
     const s = list.map(sp => `<div class="hsp" data-sp="${esc(sp.id)}">${md(sp.date)} ${esc(sp.text)}<br>${sp.done ? `✓ ${esc(sp.handler || "")} ${md(sp.doneDate)} ${tm(sp.doneAt)}` : bi("未完了")}</div>`).join("");
     rows.push(`<tr data-r="${esc(r)}"><td><b>${esc(r)}</b></td><td>${c}</td><td>${s}</td></tr>`);
   }
@@ -947,7 +964,7 @@ async function roomLogSheet(d, r) {
       const c = (l.changes || {})[r] || {};
       return `<li><b>${l.at ? tm(l.at) : ""}</b> ${esc(l.name)}［${l.type in LOG_TYPE ? bl(LOG_TYPE[l.type]) : esc(l.type)}］<br>${fmtState(c.b)} → ${fmtState(c.a)}</li>`;
     });
-    openSheetHTML(`<h3>${esc(r)} の操作履歴${myS("操作履歴")}</h3><div class="kv">${md(d)}・${list.length}件</div>${lines.length ? `<ul class="loglist">${lines.join("")}</ul>` : `<p class="kv">この日の操作はありません</p>`}<div class="row"><button id="shClose">${bl("閉じる")}</button></div>`);
+    openSheetHTML(`<h3>${esc(r)} ${isMy() ? MY["操作履歴"] : "の操作履歴"}</h3><div class="kv">${md(d)}・${list.length}件</div>${lines.length ? `<ul class="loglist">${lines.join("")}</ul>` : `<p class="kv">この日の操作はありません</p>`}<div class="row"><button id="shClose">${bl("閉じる")}</button></div>`);
   } catch (e) {
     openSheetHTML(`<h3>${esc(r)} の操作履歴</h3><p class="kv">読み込めませんでした（${esc(e.code || e)}）<br>${esc(e.message || "")}</p><div class="row"><button id="shClose">閉じる</button></div>`);
   }
@@ -988,7 +1005,7 @@ function spSheet(id) {
   if (!sp) return toast("見つかりませんでした");
   const front = S.role === "front";
   const staffAll = [...new Set(S.users.filter(u => u.active).map(u => u.name))];
-  let h = `<h3>${esc(sp.room)} 特別対応${myS("特別対応")}</h3>`;
+  let h = `<h3>${esc(sp.room)} ${tr("特別対応")}</h3>`;
   h += `<div class="kv">${md(sp.date)} ${bl("指示")}：${esc(sp.createdBy || "")} ${tm(sp.createdAt)}${sp.editedBy ? `（修正：${esc(sp.editedBy)}）` : ""}</div>`;
   if (front && !sp.done) h += `<div class="field"><label>内容</label><textarea id="shText" rows="4">${esc(sp.text)}</textarea></div>`;
   else h += `<div class="note">${esc(sp.text)}</div>`;
@@ -1029,13 +1046,13 @@ function spSheet(id) {
   bind("shDone", async () => {
     const handler = $("shHandler").value.trim(), note = $("shNote").value.trim();
     if (!handler) return toast(bl("対応した人を入力してください"));
-    if (!(await uiConfirm(`${sp.room} の特別対応を完了にします（対応：${handler}）。\n完了報告は取り消せません。よろしいですか？` + (isMy() ? `\n\n${sp.room}（${MY["対応"]}：${handler}）\n${MY["完了報告は取り消せません。よろしいですか？"]}` : "")))) return;
+    if (!(await uiConfirm(isMy() ? `${sp.room}（${MY["対応"]}：${handler}）\n${MY["完了報告は取り消せません。よろしいですか？"]}` : `${sp.room} の特別対応を完了にします（対応：${handler}）。\n完了報告は取り消せません。よろしいですか？`))) return;
     const batch = writeBatch(db);
     batch.update(ref, { done: true, handler, note, reportedBy: S.staff, doneAt: now(), doneDate: S.today, expireAt: expireFor(S.today) });
     addLog(batch, { kind: "sp", type: "sp_done", sid: id, room: sp.room, date: sp.date, a: { handler, note } });
     track(batch.commit());
     closeSheet();
-    toast(`${sp.room} の特別対応を完了報告しました${my("特別対応を完了報告しました") ? " / " + my("特別対応を完了報告しました") : ""}`);
+    toast(isMy() ? `${sp.room} ${MY["特別対応を完了報告しました"]}` : `${sp.room} の特別対応を完了報告しました`);
   });
 }
 
