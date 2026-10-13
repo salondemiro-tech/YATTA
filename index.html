@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>YATTA 清掃管理</title>
 <style>
-:root{--bg:#f4f5f7;--ink:#1f2328;--sub:#6b7280;--line:#d0d7de;--blue:#2563eb;--red:#dc2626;--green:#16a34a;--orange:#f97316;--grey:#e5e7eb}
+:root{--yellow:#eab308;--bg:#f4f5f7;--ink:#1f2328;--sub:#6b7280;--line:#d0d7de;--blue:#2563eb;--red:#dc2626;--green:#16a34a;--orange:#f97316;--grey:#e5e7eb}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 body{margin:0;font-family:-apple-system,"Hiragino Sans","Noto Sans JP",sans-serif;background:var(--bg);color:var(--ink)}
 .hidden{display:none!important}
@@ -30,7 +30,7 @@ header .who b{font-size:16px;color:var(--ink)}
 .summary{padding:8px 12px 0;font-size:14px;display:flex;gap:14px;flex-wrap:wrap;align-items:center}
 .summary b{font-size:18px}
 .dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:4px;vertical-align:middle;background:var(--grey)}
-.dot.red{background:var(--red)}.dot.green{background:var(--green)}.dot.orange{background:var(--orange)}
+.dot.red{background:var(--red)}.dot.yellow{background:var(--yellow)}.dot.green{background:var(--green)}.dot.orange{background:var(--orange)}
 .notice{margin:8px 12px;padding:8px 10px;background:#fff7e6;border:1px solid #f5d38a;border-radius:8px;font-size:13px}
 .legend{font-size:12px;color:var(--sub);padding:0 12px}
 .pad{padding:12px}
@@ -45,12 +45,15 @@ header .who b{font-size:16px;color:var(--ink)}
 .tile .by{font-size:10px;max-width:100%;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;padding:0 4px;min-height:12px}
 .tile.red{background:var(--red);border-color:var(--red);color:#fff}
 .tile.green{background:var(--green);border-color:var(--green);color:#fff}
+.tile.yellow{background:#fde047;border-color:var(--yellow);color:#713f12}
 .tile.done{background:#fff;color:var(--ink)}
 .tile.done.b-red{border-color:var(--red)}
 .tile.done.b-green{border-color:var(--green)}
 .spband{position:absolute;top:0;left:0;right:0;height:18px;background:var(--orange);color:#fff;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center}
 .tile .no,.tile .by{margin-top:6px}
 .tile .co{position:absolute;bottom:2px;right:4px;font-size:10px;font-weight:700;opacity:.9}
+.tile .ty{position:absolute;bottom:2px;left:5px;font-size:10px;font-weight:700;opacity:.75}
+.seg button.on.pen-yellow{background:var(--yellow);color:#422006}
 .tag.next{background:#dbeafe;color:var(--blue)}
 .seg button.on.pen-co{background:#7f1d1d}
 .seg{display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden}
@@ -121,12 +124,12 @@ h3.sec{font-size:15px;margin:18px 12px 6px}
     <div class="bar"><span class="lbl">日付</span><div class="seg targetSeg" id="schedTarget"></div><button id="draftBtn">前日から下書き</button></div>
     <div class="bar">
       <span class="lbl">ペン</span>
-      <div class="seg" id="penSeg"><button data-pen="red" class="pen-red">赤 連泊清掃</button><button data-pen="co" class="pen-co">赤 C/O</button><button data-pen="green" class="pen-green">緑 清掃なし</button><button data-pen="erase" class="pen-erase">消す</button></div>
+      <div class="seg" id="penSeg"><button data-pen="red" class="pen-red">赤 連泊清掃</button><button data-pen="co" class="pen-co">赤 C/O</button><button data-pen="green" class="pen-green">緑 清掃なし</button><button data-pen="yellow" class="pen-yellow">黄 未清掃・清掃不要</button><button data-pen="erase" class="pen-erase">消す</button></div>
     </div>
     <div class="bar"><input id="rangeIn" placeholder="まとめて塗る 例: 201-215, 310"><button id="rangeBtn">塗る</button></div>
     <div class="summary" id="schedSum"></div>
     <div class="bar floorbar" id="schedFloors"></div>
-    <div class="legend">ペンを選んで部屋をタップ。同じペンでもう一度タップすると未入力（灰）に戻ります。C/O はフロント画面だけの印で、管理課には同じ赤で表示されます。白は管理課が完了済み。</div>
+    <div class="legend">ペンを選んで部屋をタップ。同じペンでもう一度タップすると未入力（灰）に戻ります。C/O はフロント画面だけの印で、管理課には同じ赤で表示されます。黄は「チェックアウト済み・今日は清掃しない部屋」（翌日の下書きで赤 C/O になります）。白は管理課が完了済み。</div>
     <div id="schedBoard"></div>
   </section>
 
@@ -143,7 +146,7 @@ h3.sec{font-size:15px;margin:18px 12px 6px}
   <section id="v-board" class="view hidden">
     <div class="summary" id="boardSum"></div>
     <div class="bar floorbar" id="boardFloors"></div>
-    <div class="legend">赤：要清掃／緑：清掃なし（タオル補充）→ 終わったらタップで白。オレンジ帯：特別対応あり（帯をタップで内容）</div>
+    <div class="legend">赤：要清掃／緑：清掃なし（タオル補充）→ 終わったらタップで白。黄：未清掃・今日は清掃不要。オレンジ帯：特別対応あり（帯をタップで内容）</div>
     <div id="boardGrid"></div>
   </section>
 
@@ -168,8 +171,10 @@ h3.sec{font-size:15px;margin:18px 12px 6px}
     <h3 class="sh">部屋番号（管理者）</h3>
     <div class="field"><label>1行に1フロア「階: 部屋番号」。範囲は「-」、区切りは「,」</label>
       <textarea id="roomsTa" rows="10" placeholder="2: 201-230&#10;3: 301-330, 335"></textarea></div>
+    <div class="field"><label>部屋タイプ（1行に1タイプ「タイプ: 部屋番号」。タイプは S・D・T・TR。未設定の部屋は空欄で可）</label>
+      <textarea id="typesTa" rows="5" placeholder="S: 201-210&#10;D: 211-220&#10;T: 221-240&#10;TR: 241-244"></textarea></div>
     <p class="kv" id="setInfo"></p>
-    <button id="setSave" class="primary">部屋番号を保存</button>
+    <button id="setSave" class="primary">部屋番号・タイプを保存</button>
 
     <h3 class="sh">社員の登録（管理者）</h3>
     <div class="card0">
@@ -241,12 +246,13 @@ function md(s) { if (!/^\d{4}-\d{2}-\d{2}$/.test(s || "")) return ""; const [y, 
 const hm = ms => { const d = new Date(ms + JST); return `${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}`; };
 function tm(t) { return t && t.toMillis ? hm(t.toMillis()) : "送信中"; }
 
+const ROOM_TYPES = ["S", "D", "T", "TR"];
 const VIEWS = { home: "トップ", sched: "清掃日程表", spin: "特別対応指示表", board: "清掃ボード", report: "特別対応完了報告", hist: "履歴" };
 const DEPT = { front: "フロント", hk: "管理課" };
 const S = {
   me: null, role: null, staff: "",
   today: T(), tomorrow: T1(), target: null,
-  cfg: { floors: {} }, roomFloor: {}, users: [],
+  cfg: { floors: {}, types: {} }, roomFloor: {}, users: [],
   days: {}, open: [], openByRoom: {}, doneToday: [],
   view: "home", pen: "red", floorSel: "all", onlyOpen: false,
   hist: { date: null, loading: false, day: {}, sps: [] },
@@ -300,16 +306,18 @@ const bySp = (a, b) => (a.date || "").localeCompare(b.date || "") || (roomNum(a.
 // ===== 状態 =====
 const dayOf = d => S.days[d] || {};
 const st = (f, r, d = S.today) => { const o = dayOf(d); return (o[f] && o[f][r]) || {}; };
-const isOpenRoom = (f, r) => { const x = st(f, r); return (x.s && !x.doneBy) || (S.openByRoom[r] || []).length > 0; };
+const isOpenRoom = (f, r) => { const x = st(f, r); return (x.s && x.s !== "yellow" && !x.doneBy) || (S.openByRoom[r] || []).length > 0; };
+const sOf = pen => pen === "green" ? "green" : pen === "yellow" ? "yellow" : "red";
 const curPen = x => !x.s ? null : (x.s === "red" && x.co ? "co" : x.s);
 const defaultTarget = () => S.today; // 日程表は 23:59 まで今日を初期表示（明日は手動で切替）
 // pen: "red"（連泊清掃）/ "co"（チェックアウト清掃・管理課には赤で表示）/ "green" / null（未入力）
 function stateData(pen) {
   if (!pen) return { s: deleteField(), co: deleteField(), setBy: deleteField(), setAt: deleteField(), doneBy: deleteField(), doneAt: deleteField() };
-  return { s: pen === "green" ? "green" : "red", co: pen === "co" ? true : deleteField(), setBy: S.staff, setAt: now(), doneBy: deleteField(), doneAt: deleteField() };
+  return { s: sOf(pen), co: pen === "co" ? true : deleteField(), setBy: S.staff, setAt: now(), doneBy: deleteField(), doneAt: deleteField() };
 }
 function stateLabel(x) {
   if (!x.s) return "未入力";
+  if (x.s === "yellow") return `未清掃・清掃不要${x.setBy ? `（指示：${esc(x.setBy)} ${tm(x.setAt)}）` : ""}`;
   let t = x.s === "red" ? (x.co && S.role === "front" ? "要清掃（C/O）" : "要清掃") : "清掃なし（タオル補充）";
   if (x.setBy) t += `（指示：${esc(x.setBy)} ${tm(x.setAt)}）`;
   t += x.doneBy ? ` → 完了：${esc(x.doneBy)} ${tm(x.doneAt)}` : " → 未完了";
@@ -317,7 +325,7 @@ function stateLabel(x) {
 }
 // 操作履歴に残す部屋の状態（変更前・変更後）
 const snapState = x => ({ s: x.s || null, co: !!x.co, done: x.doneBy || null });
-const penAfter = pen => ({ s: pen ? (pen === "green" ? "green" : "red") : null, co: pen === "co", done: null });
+const penAfter = pen => ({ s: pen ? sOf(pen) : null, co: pen === "co", done: null });
 const roomItem = (f, r, pen) => ({ f, r, data: stateData(pen), a: penAfter(pen) });
 
 // ===== 同期状態 =====
@@ -431,7 +439,7 @@ function listenCfg() {
   S.unsub.cfg = onSnapshot(doc(db, "config", "hotel"), { includeMetadataChanges: true }, snap => {
     setMeta("cfg", snap);
     const d = snap.data() || {};
-    S.cfg = { floors: d.floors || {} };
+    S.cfg = { floors: d.floors || {}, types: d.types || {} };
     S.roomFloor = {};
     for (const [f, rooms] of Object.entries(S.cfg.floors)) rooms.forEach(r => { S.roomFloor[r] = f; });
     if (!$("settingsView").classList.contains("hidden")) updateSetInfo();
@@ -536,17 +544,18 @@ function render() {
 
 // ===== 共通パーツ =====
 function counts(day, floors) {
-  const c = { red: 0, redD: 0, green: 0, greenD: 0, none: 0 };
+  const c = { red: 0, redD: 0, green: 0, greenD: 0, yellow: 0, none: 0 };
   for (const f of floors) for (const r of S.cfg.floors[f] || []) {
     const x = (day[f] && day[f][r]) || {};
     if (x.s === "red") { c.red++; if (x.doneBy) c.redD++; }
     else if (x.s === "green") { c.green++; if (x.doneBy) c.greenD++; }
+    else if (x.s === "yellow") c.yellow++;
     else c.none++;
   }
   return c;
 }
 function sumHTML(c) {
-  return `<span><i class="dot red"></i>要清掃 <b>${c.redD}</b>/${c.red}</span><span><i class="dot green"></i>清掃なし <b>${c.greenD}</b>/${c.green}</span><span><i class="dot"></i>未入力 ${c.none}</span>`;
+  return `<span><i class="dot red"></i>要清掃 <b>${c.redD}</b>/${c.red}</span><span><i class="dot green"></i>清掃なし <b>${c.greenD}</b>/${c.green}</span><span><i class="dot yellow"></i>清掃不要 ${c.yellow}</span><span><i class="dot"></i>未入力 ${c.none}</span>`;
 }
 const spCountHTML = () => `<span><i class="dot orange"></i>特別対応 未完了 <b>${S.open.length}</b></span>`;
 function floorBarHTML(withOpen) {
@@ -569,7 +578,8 @@ function tileHTML(f, r, d = S.today) {
   const n = (S.openByRoom[r] || []).length;
   const cls = !x.s ? "none" : (x.doneBy ? `done b-${x.s}` : x.s);
   const co = S.role === "front" && x.s === "red" && x.co ? `<span class="co">C/O</span>` : "";
-  return `<div class="tile ${cls}" data-f="${esc(f)}" data-r="${esc(r)}">${n ? `<span class="spband" data-band="1">特別対応${n > 1 ? " ×" + n : ""}</span>` : ""}<span class="no">${esc(r)}</span><span class="by">${x.doneBy ? esc(x.doneBy) : ""}</span>${co}</div>`;
+  const ty = S.cfg.types[r] ? `<span class="ty">${esc(S.cfg.types[r])}</span>` : "";
+  return `<div class="tile ${cls}" data-f="${esc(f)}" data-r="${esc(r)}">${n ? `<span class="spband" data-band="1">特別対応${n > 1 ? " ×" + n : ""}</span>` : ""}<span class="no">${esc(r)}</span><span class="by">${x.doneBy ? esc(x.doneBy) : ""}</span>${ty}${co}</div>`;
 }
 function spCardHTML(sp, btn) {
   const carried = !sp.done && sp.date < S.today;
@@ -601,7 +611,7 @@ function renderHome() {
   h += `<div class="summary">${sumHTML(counts(dayOf(S.today), all))}</div>`;
   if (S.role === "front") {
     const c = counts(dayOf(S.tomorrow), all);
-    h += `<div class="pad"><div class="kv">明日 ${md(S.tomorrow)} の日程表：入力済み ${c.red + c.green}室／未入力 ${c.none}室</div></div>`;
+    h += `<div class="pad"><div class="kv">明日 ${md(S.tomorrow)} の日程表：入力済み ${c.red + c.green + c.yellow}室／未入力 ${c.none}室</div></div>`;
   }
   h += `<div class="pad"><div class="navgrid">${nav.map(([v, t, d]) => `<button data-go="${v}"><b>${t}</b><span>${d}</span></button>`).join("")}</div></div>`;
   h += `<h3 class="sec"><i class="dot orange"></i>未完了の特別対応（${S.open.length}件）</h3>`;
@@ -615,7 +625,7 @@ $("homeBody").onclick = e => {
 };
 
 // ===== フロント：清掃日程表（対象日 = S.target） =====
-const PEN_NAME = { red: "赤（連泊清掃）", co: "赤（C/O）", green: "緑（清掃なし）", erase: "未入力（消す）" };
+const PEN_NAME = { red: "赤（連泊清掃）", co: "赤（C/O）", green: "緑（清掃なし）", yellow: "黄（未清掃・清掃不要）", erase: "未入力（消す）" };
 $("penSeg").onclick = e => { const b = e.target.closest("button"); if (!b) return; S.pen = b.dataset.pen; render(); };
 function renderSched() {
   $("schedTarget").innerHTML = targetSegHTML();
@@ -682,20 +692,21 @@ $("rangeBtn").onclick = () => {
   writeRooms(d, "range", items);
   $("rangeIn").value = "";
 };
-// 前日から下書き：C/O→灰、連泊清掃→緑、緑が3日続いた→赤、それ以外の緑→緑。入力済みの部屋は変更しない
+// 前日から下書き：C/O→灰、連泊清掃→緑、黄（未清掃・清掃不要）→赤C/O、緑が3日続いた→赤、それ以外の緑→緑。入力済みの部屋は変更しない
 // 上書き防止：端末内のデータではなく、必ずサーバーから最新を読み込んで判定する。確認後にもう一度読み直してから書き込む
 function draftPlan(cur, prev) {
   const g = (o, f, r) => (o[f] && o[f][r]) || {};
-  const items = [], c = { red: 0, green: 0, co: 0 };
+  const items = [], c = { red: 0, green: 0, co: 0, yco: 0 };
   for (const f of floorsSorted()) for (const r of S.cfg.floors[f]) {
     if (g(cur, f, r).s) continue;
     const p1 = g(prev[0], f, r), p2 = g(prev[1], f, r), p3 = g(prev[2], f, r);
     let ns = null;
-    if (p1.s === "red") { if (p1.co) { c.co++; continue; } ns = "green"; }
+    if (p1.s === "yellow") ns = "co";
+    else if (p1.s === "red") { if (p1.co) { c.co++; continue; } ns = "green"; }
     else if (p1.s === "green") ns = (p2.s === "green" && p3.s === "green") ? "red" : "green";
     if (!ns) continue;
     items.push({ ...roomItem(f, r, ns), b: snapState({}) });
-    c[ns]++;
+    if (ns === "co") c.yco++; else c[ns]++;
   }
   return { items, c };
 }
@@ -712,15 +723,15 @@ $("draftBtn").onclick = async () => {
     try { [cur, ...prev] = await Promise.all([D, ...ds].map(serverDay)); }
     catch (e) { return toast("サーバーから読み込めませんでした。通信を確認してください（" + (e.code || e) + "）"); }
     const p = draftPlan(cur, prev);
-    if (!p.c.red && !p.c.green) return toast("下書きできる部屋はありません（前日が未入力、または入力済み）");
-    if (!confirm(`${md(D)} の日程表を ${md(ds[0])} から下書きします。\n赤（4日目の清掃）${p.c.red}室／緑 ${p.c.green}室\n前日C/Oの${p.c.co}室は灰（未入力）のままです。\n入力済みの部屋は変更しません。`)) return;
+    if (!p.c.red && !p.c.green && !p.c.yco) return toast("下書きできる部屋はありません（前日が未入力、または入力済み）");
+    if (!confirm(`${md(D)} の日程表を ${md(ds[0])} から下書きします。\n赤（4日目の清掃）${p.c.red}室／赤 C/O（前日が黄）${p.c.yco}室／緑 ${p.c.green}室\n前日C/Oの${p.c.co}室は灰（未入力）のままです。\n入力済みの部屋は変更しません。`)) return;
     // 確認している間に他の端末で入力された部屋を除くため、もう一度サーバーから読み直す
     try { cur = await serverDay(D); }
     catch (e) { return toast("サーバーから読み込めませんでした。もう一度実行してください（" + (e.code || e) + "）"); }
     const q = draftPlan(cur, prev);
-    if (!q.c.red && !q.c.green) return toast("他の端末で入力済みのため、変更はありません");
+    if (!q.c.red && !q.c.green && !q.c.yco) return toast("他の端末で入力済みのため、変更はありません");
     btn.textContent = "保存中…";
-    if (await writeRooms(D, "draft", q.items)) toast(`下書きを作成しました（赤${q.c.red}室・緑${q.c.green}室）。C/O・チェックインなどを修正してください`);
+    if (await writeRooms(D, "draft", q.items)) toast(`下書きを作成しました（赤${q.c.red + q.c.yco}室・緑${q.c.green}室）。C/O・チェックインなどを修正してください`);
   } finally {
     btn.disabled = false; btn.textContent = "前日から下書き";
   }
@@ -774,9 +785,9 @@ $("boardGrid").onclick = e => {
   const f = t.dataset.f, r = t.dataset.r;
   if (e.target.closest("[data-band]")) return roomSheet(f, r);
   const x = st(f, r);
-  if (!x.s) {
+  if (!x.s || x.s === "yellow") {
     if ((S.openByRoom[r] || []).length) return roomSheet(f, r);
-    return toast(`${r} は清掃の指示がありません`);
+    return toast(x.s ? `${r} は今日は清掃不要です（未清掃）` : `${r} は清掃の指示がありません`);
   }
   if (x.doneBy) {
     if (!confirm(`${r} の完了を取り消しますか？\n（完了者：${x.doneBy}）`)) return;
@@ -832,7 +843,7 @@ function renderHist() {
   for (const f of fs) for (const r of S.cfg.floors[f]) {
     const x = (day[f] && day[f][r]) || {}, list = byRoom[r] || [];
     if (!x.s && !list.length) continue;
-    const c = x.s ? `<i class="dot ${x.s}"></i>${x.s === "red" ? (x.co ? "要清掃（C/O）" : "要清掃") : "清掃なし"}<br>${x.doneBy ? `✓ ${esc(x.doneBy)} ${tm(x.doneAt)}` : "未完了"}` : "";
+    const c = x.s === "yellow" ? `<i class="dot yellow"></i>未清掃・清掃不要` : x.s ? `<i class="dot ${x.s}"></i>${x.s === "red" ? (x.co ? "要清掃（C/O）" : "要清掃") : "清掃なし"}<br>${x.doneBy ? `✓ ${esc(x.doneBy)} ${tm(x.doneAt)}` : "未完了"}` : "";
     const s = list.map(sp => `<div class="hsp" data-sp="${esc(sp.id)}">${md(sp.date)} ${esc(sp.text)}<br>${sp.done ? `✓ ${esc(sp.handler || "")} ${md(sp.doneDate)} ${tm(sp.doneAt)}` : "未完了"}</div>`).join("");
     rows.push(`<tr data-r="${esc(r)}"><td><b>${esc(r)}</b></td><td>${c}</td><td>${s}</td></tr>`);
   }
@@ -856,7 +867,7 @@ const LOG_TYPE = { set: "日程", floor: "フロア一括", range: "まとめ塗
   sp_add: "登録", sp_edit: "内容修正", sp_delete: "削除", sp_done: "完了報告" };
 function fmtState(x) {
   if (!x) return "";
-  const c = !x.s ? "灰（未入力）" : x.s === "green" ? "緑" : (x.co ? "赤（C/O）" : "赤");
+  const c = !x.s ? "灰（未入力）" : x.s === "green" ? "緑" : x.s === "yellow" ? "黄（未清掃・清掃不要）" : (x.co ? "赤（C/O）" : "赤");
   return c + (x.done ? `・完了（${esc(x.done)}）` : "");
 }
 const logTime = l => l.at && l.at.toMillis ? l.at.toMillis() : 0;
@@ -899,7 +910,7 @@ $("sheet").addEventListener("click", spClick);
 function roomSheet(f, r, d = S.today) {
   const x = st(f, r, d);
   const sps = [...(S.openByRoom[r] || []), ...S.doneToday.filter(s => s.room === r)];
-  let h = `<h3>${esc(r)}</h3><div class="kv">${md(d)} 清掃：${stateLabel(x)}</div>`;
+  let h = `<h3>${esc(r)}${S.cfg.types[r] ? `（${esc(S.cfg.types[r])}）` : ""}</h3><div class="kv">${md(d)} 清掃：${stateLabel(x)}</div>`;
   h += sps.length ? sps.map(sp => spCardHTML(sp, !sp.done && S.role === "hk" ? "完了報告" : "")).join("") : `<p class="kv">特別対応はありません</p>`;
   h += `<div class="row"><button id="shClose">閉じる</button></div>`;
   openSheetHTML(h);
@@ -968,6 +979,8 @@ function openSettings() {
   $("adminSec").classList.toggle("hidden", !S.me.admin);
   if (S.me.admin) {
     $("roomsTa").value = floorsSorted().map(f => `${f}: ${compress(S.cfg.floors[f])}`).join("\n");
+    const order = floorsSorted().flatMap(f => S.cfg.floors[f]);
+    $("typesTa").value = ROOM_TYPES.map(t => { const rs = order.filter(r => S.cfg.types[r] === t); return rs.length ? `${t}: ${compress(rs)}` : ""; }).filter(Boolean).join("\n");
     updateSetInfo();
     renderUsers();
   }
@@ -977,7 +990,8 @@ function openSettings() {
 // 登録済みの室数表示（保存後も最新に更新する）
 function updateSetInfo() {
   const total = Object.values(S.cfg.floors).reduce((a, v) => a + v.length, 0);
-  $("setInfo").textContent = `登録済み：${Object.keys(S.cfg.floors).length}フロア・${total}室`;
+  const typed = Object.keys(S.cfg.types).filter(r => S.roomFloor[r]).length;
+  $("setInfo").textContent = `登録済み：${Object.keys(S.cfg.floors).length}フロア・${total}室（タイプ設定済み ${typed}室）`;
 }
 $("setCancel").onclick = () => { show("appView"); render(); };
 $("logoutBtn").onclick = logout;
@@ -995,14 +1009,32 @@ $("setSave").onclick = async () => {
     floors[f] = [...new Set([...(floors[f] || []), ...parseRooms(m[2], bad)])];
     if (bad.length) errs.push(i + 1);
   });
-  if (errs.length) return toast(`${errs.join(",")}行目の書式を確認してください`);
+  if (errs.length) return toast(`部屋番号の ${errs.join(",")}行目の書式を確認してください`);
   const total = Object.values(floors).reduce((a, v) => a + v.length, 0);
-  if (!confirm(`${Object.keys(floors).length}フロア・${total}室で保存しますか？`)) return;
+  // 部屋タイプ：「S: 201-210」の形式。登録されていない部屋・同じ部屋の重複はエラー
+  const all = new Set(Object.values(floors).flat()), types = {}, terr = [], unknown = [], dup = [];
+  $("typesTa").value.normalize("NFKC").split("\n").forEach((line, i) => {
+    if (!line.trim()) return;
+    const m = line.match(/^\s*([A-Za-z]+)\s*:\s*(.+)$/), bad = [];
+    const t = m ? m[1].toUpperCase() : "";
+    if (!m || !ROOM_TYPES.includes(t)) { terr.push(i + 1); return; }
+    parseRooms(m[2], bad).forEach(r => {
+      if (!all.has(r)) unknown.push(r);
+      else if (types[r] && types[r] !== t) dup.push(r);
+      else types[r] = t;
+    });
+    if (bad.length) terr.push(i + 1);
+  });
+  if (terr.length) return toast(`部屋タイプの ${terr.join(",")}行目を確認してください（タイプは S・D・T・TR）`);
+  if (unknown.length) return toast(`部屋タイプに未登録の部屋があります：${unknown.slice(0, 5).join(", ")}`);
+  if (dup.length) return toast(`2つのタイプに入っている部屋があります：${dup.slice(0, 5).join(", ")}`);
+  const typed = Object.keys(types).length;
+  if (!confirm(`${Object.keys(floors).length}フロア・${total}室（タイプ設定 ${typed}室）で保存しますか？`)) return;
   if (!navigator.onLine) return toast("オフラインでは設定を保存できません");
   const batch = writeBatch(db);
-  batch.set(doc(db, "config", "hotel"), { floors, updatedAt: serverTimestamp(), updatedBy: S.staff });
-  addLog(batch, { kind: "config", type: "config", a: { floors: Object.keys(floors).length, rooms: total } });
-  if (await track(batch.commit())) toast("部屋番号を保存しました");
+  batch.set(doc(db, "config", "hotel"), { floors, types, updatedAt: serverTimestamp(), updatedBy: S.staff });
+  addLog(batch, { kind: "config", type: "config", a: { floors: Object.keys(floors).length, rooms: total, typed } });
+  if (await track(batch.commit())) toast("部屋番号・タイプを保存しました");
 };
 
 // パスワード変更（本人）
