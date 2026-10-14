@@ -184,10 +184,10 @@ export function stateLabel(x) {
   if (!x.s) return bi("未入力");
   if (x.s === "yellow") return `${tr("未清掃・清掃不要")}${x.setBy ? `（${tr("指示")}：${esc(x.setBy)} ${tm(x.setAt)}）` : ""}`;
   const base = x.s === "red" ? "要清掃" : "清掃なし（タオル補充）";
-  let t = x.s === "red" ? (x.co && S.role === "front" ? "要清掃（C/O）" : "要清掃") : base;
+  let t = x.s === "red" ? (x.co ? "要清掃（C/O）" : "要清掃") : base;
   if (x.setBy) t += `（指示：${esc(x.setBy)} ${tm(x.setAt)}）`;
   t += x.doneBy ? ` → 完了：${esc(x.doneBy)} ${tm(x.doneAt)}` : " → 未完了";
-  if (isMy()) return `${MY[base]}${x.setBy ? `（${MY["指示"]}：${esc(x.setBy)} ${tm(x.setAt)}）` : ""} → ${x.doneBy ? `${MY["完了"]}：${esc(x.doneBy)} ${tm(x.doneAt)}` : MY["未完了"]}`;
+  if (isMy()) return `${MY[base]}${x.s === "red" && x.co ? " (C/O)" : ""}${x.setBy ? `（${MY["指示"]}：${esc(x.setBy)} ${tm(x.setAt)}）` : ""} → ${x.doneBy ? `${MY["完了"]}：${esc(x.doneBy)} ${tm(x.doneAt)}` : MY["未完了"]}`;
   return t;
 }
 

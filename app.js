@@ -184,7 +184,7 @@ export function tileHTML(f, r, d = S.today) {
   const x = st(f, r, d);
   const n = (S.openByRoom[r] || []).length;
   const cls = !x.s ? "none" : (x.doneBy ? `done b-${x.s}` : x.s);
-  const co = S.role === "front" && x.s === "red" && x.co ? `<span class="co">C/O</span>` : "";
+  const co = x.s === "red" && x.co ? `<span class="co">C/O</span>` : "";
   const ty = S.cfg.types[r] ? `<span class="ty">${esc(S.cfg.types[r])}</span>` : "";
   return `<div class="tile ${cls}" data-f="${esc(f)}" data-r="${esc(r)}">${n ? `<span class="spband" data-band="1">${tr("特別対応")}${n > 1 ? " ×" + n : ""}</span>` : ""}<span class="no">${esc(r)}</span><span class="by">${x.doneBy ? esc(x.doneBy) : ""}</span>${ty}${co}</div>`;
 }
